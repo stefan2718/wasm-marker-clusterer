@@ -1,6 +1,6 @@
 [package]
 name = "webassembly-marker-clusterer"
-version = "0.0.1"
+version = "0.0.2"
 authors = ["Stefan Battiston <stefan.battiston@gmail.com>"]
 description = "A WebAssembly alternative to the popular MarkerClustererPlus library for Google Maps"
 license = "GPL-3.0-only"
@@ -10,4 +10,4 @@ repository = "https://github.com/stefan2718/webassembly-marker-clusterer"
 crate-type = ["cdylib"]
 
 [dependencies]
-wasm-bindgen = "0.2"
+wasm-bindgen = "=0.2.34"
