@@ -14,7 +14,7 @@ use std::f64;
 // - Should maintain list of points in the cluster, but not return that list to JS
 #[derive(Debug, Serialize)]
 pub struct Cluster {
-    count: u16,
+    count: u32,
     center_lat: f64,
     center_lng: f64,
     // points: Vec<&Point>,
@@ -46,7 +46,7 @@ impl Cluster {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct Point {
     lat: f64,
     lng: f64,
@@ -63,11 +63,11 @@ pub fn parse_and_cluster_points(points_val: &JsValue) -> JsValue {
     utils::set_panic_hook();
 
     let points: Vec<Point> = points_val.into_serde().unwrap();
-    console::time_end_with_label("into wasm");
+    console::time_end_with_label("into-wasm");
     console::time_with_label("clustering");
     let clusters = cluster_points(&points);
     console::time_end_with_label("clustering");
-    console::time_with_label("out of wasm");
+    console::time_with_label("out-of-wasm");
     return JsValue::from_serde(&clusters).unwrap();
 }
 
@@ -122,17 +122,11 @@ mod tests {
 
     #[test]
     fn clusters_include_all_points() {
-        let sample_points = vec![
-            Point { lat: 1.0, lng: 1.0, price: 1 },
-            Point { lat: 1.0, lng: 1.0, price: 1 },
-            Point { lat: 1.0, lng: 1.0, price: 1 },
-            Point { lat: 1.0, lng: 1.0, price: 1 },
-            Point { lat: 1.0, lng: 1.0, price: 1 },
-        ];
+        let sample_points = vec![ Point { lat: 1.0, lng: 1.0, price: 1 }; 5 ];
 
         let clustered = cluster_points(&sample_points);
         let cluster_point_count = clustered.iter().fold(0, |sum, ref x| sum + x.count );
-        assert_eq!(sample_points.len() as u16, cluster_point_count);
+        assert_eq!(sample_points.len() as u32, cluster_point_count);
     }
 
     #[test]
@@ -152,5 +146,14 @@ mod tests {
         assert_eq!(sample_clusters[0].count, 2);
         assert_eq!(sample_clusters[0].center_lat, 1.5);
         assert_eq!(sample_clusters[0].center_lng, 1.5);
+    }
+
+    #[test]
+    fn test_100000_points() {
+        let sample_points = vec![ Point { lat: 1.0, lng: 2.0, price: 3 }; 100000 ];
+        
+        let clustered = cluster_points(&sample_points);
+        assert_eq!(clustered.len(), 1);
+        assert_eq!(clustered.get(0).unwrap().count, 100000);
     }
 }
