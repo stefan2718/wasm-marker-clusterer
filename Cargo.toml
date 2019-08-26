@@ -1,6 +1,6 @@
 [package]
 name = "webassembly-marker-clusterer"
-version = "0.0.4"
+version = "0.0.5"
 authors = ["Stefan Battiston <stefan.battiston@gmail.com>"]
 description = "A WebAssembly alternative to the popular MarkerClustererPlus library for Google Maps"
 license = "GPL-3.0-only"
@@ -20,6 +20,8 @@ features = ["serde-serialize"]
 serde = "1.0.94"
 serde_derive = "1.0.94"
 web-sys = { version = "0.3", features = [ "console" ] }
+googleprojection = "1.1.0"
+uuid = { version = "0.7", features = ["serde", "v4", "wasm-bindgen"] }
 
 # The `console_error_panic_hook` crate provides better debugging of panics by
 # logging them with `console.error`. This is great for development, but requires
