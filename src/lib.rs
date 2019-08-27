@@ -5,15 +5,22 @@ extern crate uuid;
 
 #[macro_use]
 extern crate serde_derive;
+#[macro_use]
+extern crate lazy_static;
 
 mod utils;
 
+use std::sync::Mutex;
 use uuid::Uuid;
 use wasm_bindgen::prelude::*;
 use web_sys::console;
 use std::f64;
 
 static GRID_SIZE: f64 = 60.0; // pixels?
+
+lazy_static! {
+    static ref ALL_POINTS: Mutex<Vec<Point>> = Mutex::new(Vec::new());
+}
 
 // Cluster struct
 // - Should maintain list of points in the cluster, but not return that list to JS
@@ -44,7 +51,7 @@ impl Cluster {
     }
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Bounds {
     north_east_lat: f64,
     north_east_lng: f64,
@@ -75,22 +82,31 @@ impl Point {
 }
 
 #[wasm_bindgen]
-pub fn parse_and_cluster_points(points_val: &JsValue, zoom: usize) -> JsValue {
+pub fn add_points(points_val: &JsValue) {
+    utils::set_panic_hook();
+    ALL_POINTS.lock().unwrap().append(&mut points_val.into_serde().unwrap());
+}
+
+#[wasm_bindgen]
+pub fn cluster_points_in_bounds(bounds_val: &JsValue, zoom: usize) -> JsValue {
     utils::set_panic_hook();
 
-    let points: Vec<Point> = points_val.into_serde().unwrap();
+    let bounds: Bounds = calculate_extended_bounds(&bounds_val.into_serde().unwrap(), zoom);
     console::time_end_with_label("into-wasm");
+
     console::time_with_label("clustering");
-    let clusters = cluster_points(&points, zoom);
+    let clusters = cluster_points(&ALL_POINTS.lock().unwrap(), &bounds, zoom);
     console::time_end_with_label("clustering");
     console::time_with_label("out-of-wasm");
     return JsValue::from_serde(&clusters).unwrap();
 }
 
-pub fn cluster_points(points: &Vec<Point>, zoom: usize) -> Vec<Cluster> {
+pub fn cluster_points(points: &Vec<Point>, bounds: &Bounds, zoom: usize) -> Vec<Cluster> {
     let mut clusters = Vec::new();
     for point in points.iter() {
-        add_to_closest_cluster(&mut clusters, point, zoom);
+        if bounds.contains(point) {
+            add_to_closest_cluster(&mut clusters, point, zoom);
+        }
     }
     clusters
 }
@@ -168,12 +184,18 @@ mod tests {
 
     static SAMPLE_POINT: Point = Point { lat: 43.0, lng: -79.0, price: 1 };
     static DEFAULT_ZOOM: usize = 8;
+    static DEFAULT_BOUNDS: Bounds = Bounds {
+        north_east_lat: 45.0,
+        north_east_lng: -75.0,
+        south_west_lat: 40.0,
+        south_west_lng: -81.0,
+    };
 
     #[test]
     fn clusters_include_all_points() {
         let sample_points = vec![ Point { lat: 43.0, lng: -79.0, price: 1 }; 5 ];
 
-        let clustered = cluster_points(&sample_points, DEFAULT_ZOOM);
+        let clustered = cluster_points(&sample_points, &DEFAULT_BOUNDS, DEFAULT_ZOOM);
         let cluster_point_count = clustered.iter().fold(0, |sum, ref x| sum + x.count );
         assert_eq!(sample_points.len() as u32, cluster_point_count);
     }
@@ -199,9 +221,9 @@ mod tests {
 
     #[test]
     fn test_100000_points() {
-        let sample_points = vec![ Point { lat: 1.0, lng: 2.0, price: 3 }; 100000 ];
+        let sample_points = vec![ Point { lat: 43.0, lng: -79.0, price: 3 }; 100000 ];
         
-        let clustered = cluster_points(&sample_points, DEFAULT_ZOOM);
+        let clustered = cluster_points(&sample_points, &DEFAULT_BOUNDS, DEFAULT_ZOOM);
         assert_eq!(clustered.len(), 1);
         assert_eq!(clustered.get(0).unwrap().count, 100000);
     }

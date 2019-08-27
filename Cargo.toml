@@ -22,6 +22,7 @@ serde_derive = "1.0.94"
 web-sys = { version = "0.3", features = [ "console" ] }
 googleprojection = "1.1.0"
 uuid = { version = "0.7", features = ["serde", "v4", "wasm-bindgen"] }
+lazy_static = "1.4.0"
 
 # The `console_error_panic_hook` crate provides better debugging of panics by
 # logging them with `console.error`. This is great for development, but requires
