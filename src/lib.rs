@@ -49,6 +49,15 @@ impl Cluster {
         self.center_lng = ((self.center_lng * f64::from(self.count)) + new_point.lng) / f64::from(self.count + 1);
         self.count += 1;
     }
+
+    fn calculate_bounds(&mut self, zoom: usize) {
+        self.bounds = calculate_extended_bounds(&Bounds {
+            north_east_lat: self.center_lat,
+            north_east_lng: self.center_lng,
+            south_west_lat: self.center_lat,
+            south_west_lng: self.center_lng
+        }, zoom);
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -84,6 +93,7 @@ impl Point {
 #[wasm_bindgen]
 pub fn add_points(points_val: &JsValue) {
     utils::set_panic_hook();
+    // TODO see if .extend() is faster/better than .append() ?
     ALL_POINTS.lock().unwrap().append(&mut points_val.into_serde().unwrap());
 }
 
@@ -126,7 +136,9 @@ pub fn add_to_closest_cluster(clusters: &mut Vec<Cluster>, new_point: &Point, zo
     // cluster_index_to_add_to = clusters.iter().min_by_key(|cluster| distance_between_points(&cluster.get_center(), new_point));
 
     if cluster_index_to_add_to.is_some() && clusters[cluster_index_to_add_to.unwrap()].bounds.contains(&new_point) {
-        clusters[cluster_index_to_add_to.unwrap()].add_marker(new_point);
+        let index = cluster_index_to_add_to.unwrap();
+        clusters[index].add_marker(new_point);
+        clusters[index].calculate_bounds(zoom);
     } else {
         clusters.push(Cluster {
             uuid: Uuid::new_v4(),
@@ -237,7 +249,7 @@ mod tests {
             south_west_lng: -79.3832,
         };
 
-        let extended_bounds = calculate_extended_bounds(&bounds, 6);
+        let extended_bounds = calculate_extended_bounds(&bounds, DEFAULT_ZOOM);
 
         assert!(bounds.north_east_lat < extended_bounds.north_east_lat);
         assert!(bounds.north_east_lng < extended_bounds.north_east_lng);
