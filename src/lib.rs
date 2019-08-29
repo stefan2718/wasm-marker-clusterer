@@ -256,4 +256,54 @@ mod tests {
         assert!(bounds.south_west_lat > extended_bounds.south_west_lat);
         assert!(bounds.south_west_lng > extended_bounds.south_west_lng);
     }
+
+    // zoom level is (index + 3) 
+    static GMAP_BOUNDS: [Bounds; 17] = [
+        Bounds {north_east_lat: 50.800061065188856, north_east_lng: -68.83632499999999, south_west_lat: 35.542543366259075, south_west_lng: -89.93007499999999},
+        Bounds {north_east_lat: 47.34741387849921, north_east_lng: -74.10976249999999, south_west_lat: 39.71693995491094, south_west_lng: -84.65663749999999},
+        Bounds {north_east_lat: 45.530626397270055, north_east_lng: -76.74648124999999, south_west_lat: 41.71519339348616, south_west_lng: -82.01991874999999},
+        Bounds {north_east_lat: 44.599495541698985, north_east_lng: -78.06484062499999, south_west_lat: 42.69175511293576, south_west_lng: -80.70155937499999},
+        Bounds {north_east_lat: 44.12824279122392, north_east_lng: -78.72402031249999, south_west_lat: 43.17436960409823, south_west_lng: -80.04237968749999},
+        Bounds {north_east_lat: 43.891195023324286, north_east_lng: -79.05361015624999, south_west_lat: 43.414258058734866, south_west_lng: -79.71278984374999},
+        Bounds {north_east_lat: 43.77231589906095, north_east_lng: -79.21840507812499, south_west_lat: 43.5338473704056, south_west_lng: -79.54799492187499},
+        Bounds {north_east_lat: 43.712787543711634, north_east_lng: -79.30080253906249, south_west_lat: 43.59355327358944, south_west_lng: -79.46559746093749},
+        Bounds {north_east_lat: 43.68300117005328, north_east_lng: -79.34200126953124, south_west_lat: 43.623384034267886, south_west_lng: -79.42439873046874},
+        Bounds {north_east_lat: 43.66810243453164, north_east_lng: -79.36260063476561, south_west_lat: 43.63829386654838, south_west_lng: -79.40379936523436},
+        Bounds {north_east_lat: 43.66065167963645, north_east_lng: -79.3729003173828, south_west_lat: 43.64574739563353, south_west_lng: -79.39349968261718},
+        Bounds {north_east_lat: 43.65692595541019, north_east_lng: -79.3780501586914, south_west_lat: 43.6494738134073, south_west_lng: -79.38834984130858},
+        Bounds {north_east_lat: 43.65506300660299, north_east_lng: -79.38062507934569, south_west_lat: 43.65133693560138, south_west_lng: -79.38577492065428},
+        Bounds {north_east_lat: 43.65413151052596, north_east_lng: -79.38191253967284, south_west_lat: 43.652268475025124, south_west_lng: -79.38448746032714},
+        Bounds {north_east_lat: 43.653665757069085, north_east_lng: -79.38255626983641, south_west_lat: 43.652734239318676, south_west_lng: -79.38384373016356},
+        Bounds {north_east_lat: 43.653432878986074, north_east_lng: -79.3828781349182, south_west_lat: 43.65296712011086, south_west_lng: -79.38352186508178},
+        Bounds {north_east_lat: 43.6533164396059, north_east_lng: -79.3830390674591, south_west_lat: 43.653083560168305, south_west_lng: -79.38336093254088}
+    ];
+
+    #[test]
+    fn compare_bound_extension_to_gmap() {
+        let bounds = Bounds {
+            north_east_lat: 43.6532,
+            north_east_lng: -79.3832,
+            south_west_lat: 43.6532,
+            south_west_lng: -79.3832,
+        };
+
+        for (i, g_bounds) in GMAP_BOUNDS.iter().enumerate() {
+            let zoom = i + 3;
+            let extended_bounds = calculate_extended_bounds(&bounds, zoom);
+            bounds_error(&g_bounds, &extended_bounds, zoom);
+        }
+    }
+
+    fn bounds_error(gmap: &Bounds, wasm: &Bounds, zoom: usize) {
+        print!("z{:02} errors: | ", zoom);
+        print!("NE lat: {:9.6} | ", percent_error(gmap.north_east_lat, wasm.north_east_lat));
+        print!("NE lng: {:9.6} | ", percent_error(gmap.north_east_lng, wasm.north_east_lng));
+        print!("SW lat: {:9.6} | ", percent_error(gmap.south_west_lat, wasm.south_west_lat));
+        print!("SW lng: {:9.6} | ", percent_error(gmap.south_west_lng, wasm.south_west_lng));
+        println!();
+    }
+
+    fn percent_error(expected: f64, achieved: f64) -> f64 {
+        (achieved - expected)/expected.abs() * 100.0
+    }
 }
