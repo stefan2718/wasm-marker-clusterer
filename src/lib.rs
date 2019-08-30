@@ -16,10 +16,37 @@ use wasm_bindgen::prelude::*;
 use web_sys::console;
 use std::f64;
 
-static GRID_SIZE: f64 = 60.0; // pixels?
-
 lazy_static! {
     static ref ALL_POINTS: Mutex<Vec<Point>> = Mutex::new(Vec::new());
+    static ref CONFIG: Mutex<Config> = Mutex::new(Config {
+        grid_size: 60.0,
+        average_center: false,
+        log_time: false,
+    });
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct Config {
+    grid_size: f64,
+    average_center: bool,
+    log_time: bool,
+}
+
+#[wasm_bindgen]
+impl Config {
+
+}
+
+#[wasm_bindgen]
+pub fn configure(config: &JsValue) {
+    utils::set_panic_hook();
+
+    let new_config: Config = config.into_serde().unwrap();
+    let old_config = &mut CONFIG.lock().unwrap();
+
+    old_config.grid_size = new_config.grid_size;
+    old_config.average_center = new_config.average_center;
+    old_config.log_time = new_config.log_time;
 }
 
 // Cluster struct
@@ -44,10 +71,13 @@ impl Cluster {
         }
     }
 
-    fn add_marker(&mut self, new_point: &Point) {
-        self.center_lat = ((self.center_lat * f64::from(self.count)) + new_point.lat) / f64::from(self.count + 1);
-        self.center_lng = ((self.center_lng * f64::from(self.count)) + new_point.lng) / f64::from(self.count + 1);
+    fn add_marker(&mut self, new_point: &Point, zoom: usize) {
         self.count += 1;
+        if CONFIG.lock().unwrap().average_center {
+            self.center_lat = ((self.center_lat * f64::from(self.count)) + new_point.lat) / f64::from(self.count + 1);
+            self.center_lng = ((self.center_lng * f64::from(self.count)) + new_point.lng) / f64::from(self.count + 1);
+            self.calculate_bounds(zoom)
+        }
     }
 
     fn calculate_bounds(&mut self, zoom: usize) {
@@ -100,14 +130,18 @@ pub fn add_points(points_val: &JsValue) {
 #[wasm_bindgen]
 pub fn cluster_points_in_bounds(bounds_val: &JsValue, zoom: usize) -> JsValue {
     utils::set_panic_hook();
+    let log_time = CONFIG.lock().unwrap().log_time;
 
     let map_bounds: Bounds = calculate_extended_bounds(&bounds_val.into_serde().unwrap(), zoom);
-    console::time_end_with_label("into-wasm");
-
-    console::time_with_label("clustering");
+    if log_time {
+        console::time_end_with_label("into-wasm");
+        console::time_with_label("clustering");
+    }
     let clusters = cluster_points(&ALL_POINTS.lock().unwrap(), &map_bounds, zoom);
-    console::time_end_with_label("clustering");
-    console::time_with_label("out-of-wasm");
+    if log_time {
+        console::time_end_with_label("clustering");
+        console::time_with_label("out-of-wasm");
+    }
     return JsValue::from_serde(&clusters).unwrap();
 }
 
@@ -137,8 +171,7 @@ pub fn add_to_closest_cluster(clusters: &mut Vec<Cluster>, new_point: &Point, zo
 
     if cluster_index_to_add_to.is_some() && clusters[cluster_index_to_add_to.unwrap()].bounds.contains(&new_point) {
         let index = cluster_index_to_add_to.unwrap();
-        clusters[index].add_marker(new_point);
-        clusters[index].calculate_bounds(zoom);
+        clusters[index].add_marker(new_point, zoom);
     } else {
         clusters.push(Cluster {
             uuid: Uuid::new_v4(),
@@ -172,11 +205,13 @@ pub fn calculate_extended_bounds(bounds: &Bounds, zoom: usize) -> Bounds {
     let mut north_east_pix = googleprojection::from_ll_to_pixel(&(bounds.east, bounds.north), zoom).unwrap();
     let mut south_west_pix = googleprojection::from_ll_to_pixel(&(bounds.west, bounds.south), zoom).unwrap();
 
-    north_east_pix.0 += GRID_SIZE;
-    north_east_pix.1 -= GRID_SIZE;
+    let grid_size = CONFIG.lock().unwrap().grid_size;
 
-    south_west_pix.0 -= GRID_SIZE;
-    south_west_pix.1 += GRID_SIZE;
+    north_east_pix.0 += grid_size;
+    north_east_pix.1 -= grid_size;
+
+    south_west_pix.0 -= grid_size;
+    south_west_pix.1 += grid_size;
     
     // println!("ne0 {}, ne1 {}, sw0 {}, sw1 {}", north_east_pix.0, north_east_pix.1, south_west_pix.0, south_west_pix.1);
     let north_east_latlng = googleprojection::from_pixel_to_ll(&(north_east_pix.0, north_east_pix.1), zoom).unwrap();
