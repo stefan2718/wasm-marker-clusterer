@@ -52,29 +52,29 @@ impl Cluster {
 
     fn calculate_bounds(&mut self, zoom: usize) {
         self.bounds = calculate_extended_bounds(&Bounds {
-            north_east_lat: self.center_lat,
-            north_east_lng: self.center_lng,
-            south_west_lat: self.center_lat,
-            south_west_lng: self.center_lng
+            north: self.center_lat,
+            east: self.center_lng,
+            south: self.center_lat,
+            west: self.center_lng
         }, zoom);
     }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Bounds {
-    north_east_lat: f64,
-    north_east_lng: f64,
-    south_west_lat: f64,
-    south_west_lng: f64,
+    north: f64,
+    east: f64,
+    south: f64,
+    west: f64,
 }
 
 #[wasm_bindgen]
 impl Bounds {
     fn contains(&self, point: &Point) -> bool {
-        self.north_east_lat > point.lat &&
-        self.north_east_lng > point.lng &&
-        self.south_west_lat < point.lat &&
-        self.south_west_lng < point.lng
+        self.north > point.lat &&
+        self.east > point.lng &&
+        self.south < point.lat &&
+        self.west < point.lng
     }
 }
 
@@ -101,20 +101,20 @@ pub fn add_points(points_val: &JsValue) {
 pub fn cluster_points_in_bounds(bounds_val: &JsValue, zoom: usize) -> JsValue {
     utils::set_panic_hook();
 
-    let bounds: Bounds = calculate_extended_bounds(&bounds_val.into_serde().unwrap(), zoom);
+    let map_bounds: Bounds = calculate_extended_bounds(&bounds_val.into_serde().unwrap(), zoom);
     console::time_end_with_label("into-wasm");
 
     console::time_with_label("clustering");
-    let clusters = cluster_points(&ALL_POINTS.lock().unwrap(), &bounds, zoom);
+    let clusters = cluster_points(&ALL_POINTS.lock().unwrap(), &map_bounds, zoom);
     console::time_end_with_label("clustering");
     console::time_with_label("out-of-wasm");
     return JsValue::from_serde(&clusters).unwrap();
 }
 
-pub fn cluster_points(points: &Vec<Point>, bounds: &Bounds, zoom: usize) -> Vec<Cluster> {
+pub fn cluster_points(points: &Vec<Point>, map_bounds: &Bounds, zoom: usize) -> Vec<Cluster> {
     let mut clusters = Vec::new();
     for point in points.iter() {
-        if bounds.contains(point) {
+        if map_bounds.contains(point) {
             add_to_closest_cluster(&mut clusters, point, zoom);
         }
     }
@@ -146,10 +146,10 @@ pub fn add_to_closest_cluster(clusters: &mut Vec<Cluster>, new_point: &Point, zo
             center_lat: new_point.lat,
             center_lng: new_point.lng,
             bounds: calculate_extended_bounds(&Bounds {
-                north_east_lat: new_point.lat,
-                north_east_lng: new_point.lng,
-                south_west_lat: new_point.lat,
-                south_west_lng: new_point.lng
+                north: new_point.lat,
+                east: new_point.lng,
+                south: new_point.lat,
+                west: new_point.lng
             }, zoom)
         })
     };
@@ -169,8 +169,8 @@ pub fn distance_between_points(p1: &Point, p2: &Point) -> f64 {
 }
 
 pub fn calculate_extended_bounds(bounds: &Bounds, zoom: usize) -> Bounds {
-    let mut north_east_pix = googleprojection::from_ll_to_pixel(&(bounds.north_east_lng, bounds.north_east_lat), zoom).unwrap();
-    let mut south_west_pix = googleprojection::from_ll_to_pixel(&(bounds.south_west_lng, bounds.south_west_lat), zoom).unwrap();
+    let mut north_east_pix = googleprojection::from_ll_to_pixel(&(bounds.east, bounds.north), zoom).unwrap();
+    let mut south_west_pix = googleprojection::from_ll_to_pixel(&(bounds.west, bounds.south), zoom).unwrap();
 
     north_east_pix.0 += GRID_SIZE;
     north_east_pix.1 -= GRID_SIZE;
@@ -183,10 +183,10 @@ pub fn calculate_extended_bounds(bounds: &Bounds, zoom: usize) -> Bounds {
     let south_west_latlng = googleprojection::from_pixel_to_ll(&(south_west_pix.0, south_west_pix.1), zoom).unwrap();
 
     Bounds {
-        north_east_lat: north_east_latlng.1,
-        north_east_lng: north_east_latlng.0,
-        south_west_lat: south_west_latlng.1,
-        south_west_lng: south_west_latlng.0,
+        north: north_east_latlng.1,
+        east: north_east_latlng.0,
+        south: south_west_latlng.1,
+        west: south_west_latlng.0,
     }
 }
 
@@ -197,10 +197,10 @@ mod tests {
     static SAMPLE_POINT: Point = Point { lat: 43.0, lng: -79.0, price: 1 };
     static DEFAULT_ZOOM: usize = 8;
     static DEFAULT_BOUNDS: Bounds = Bounds {
-        north_east_lat: 45.0,
-        north_east_lng: -75.0,
-        south_west_lat: 40.0,
-        south_west_lng: -81.0,
+        north: 45.0,
+        east: -75.0,
+        south: 40.0,
+        west: -81.0,
     };
 
     #[test]
@@ -243,48 +243,48 @@ mod tests {
     #[test]
     fn bounds_get_extended() {
         let bounds = Bounds {
-            north_east_lat: 43.6532,
-            north_east_lng: -79.3832,
-            south_west_lat: 43.6532,
-            south_west_lng: -79.3832,
+            north: 43.6532,
+            east: -79.3832,
+            south: 43.6532,
+            west: -79.3832,
         };
 
         let extended_bounds = calculate_extended_bounds(&bounds, DEFAULT_ZOOM);
 
-        assert!(bounds.north_east_lat < extended_bounds.north_east_lat);
-        assert!(bounds.north_east_lng < extended_bounds.north_east_lng);
-        assert!(bounds.south_west_lat > extended_bounds.south_west_lat);
-        assert!(bounds.south_west_lng > extended_bounds.south_west_lng);
+        assert!(bounds.north < extended_bounds.north);
+        assert!(bounds.east < extended_bounds.east);
+        assert!(bounds.south > extended_bounds.south);
+        assert!(bounds.west > extended_bounds.west);
     }
 
     // zoom level is (index + 3) 
     static GMAP_BOUNDS: [Bounds; 17] = [
-        Bounds {north_east_lat: 50.800061065188856, north_east_lng: -68.83632499999999, south_west_lat: 35.542543366259075, south_west_lng: -89.93007499999999},
-        Bounds {north_east_lat: 47.34741387849921, north_east_lng: -74.10976249999999, south_west_lat: 39.71693995491094, south_west_lng: -84.65663749999999},
-        Bounds {north_east_lat: 45.530626397270055, north_east_lng: -76.74648124999999, south_west_lat: 41.71519339348616, south_west_lng: -82.01991874999999},
-        Bounds {north_east_lat: 44.599495541698985, north_east_lng: -78.06484062499999, south_west_lat: 42.69175511293576, south_west_lng: -80.70155937499999},
-        Bounds {north_east_lat: 44.12824279122392, north_east_lng: -78.72402031249999, south_west_lat: 43.17436960409823, south_west_lng: -80.04237968749999},
-        Bounds {north_east_lat: 43.891195023324286, north_east_lng: -79.05361015624999, south_west_lat: 43.414258058734866, south_west_lng: -79.71278984374999},
-        Bounds {north_east_lat: 43.77231589906095, north_east_lng: -79.21840507812499, south_west_lat: 43.5338473704056, south_west_lng: -79.54799492187499},
-        Bounds {north_east_lat: 43.712787543711634, north_east_lng: -79.30080253906249, south_west_lat: 43.59355327358944, south_west_lng: -79.46559746093749},
-        Bounds {north_east_lat: 43.68300117005328, north_east_lng: -79.34200126953124, south_west_lat: 43.623384034267886, south_west_lng: -79.42439873046874},
-        Bounds {north_east_lat: 43.66810243453164, north_east_lng: -79.36260063476561, south_west_lat: 43.63829386654838, south_west_lng: -79.40379936523436},
-        Bounds {north_east_lat: 43.66065167963645, north_east_lng: -79.3729003173828, south_west_lat: 43.64574739563353, south_west_lng: -79.39349968261718},
-        Bounds {north_east_lat: 43.65692595541019, north_east_lng: -79.3780501586914, south_west_lat: 43.6494738134073, south_west_lng: -79.38834984130858},
-        Bounds {north_east_lat: 43.65506300660299, north_east_lng: -79.38062507934569, south_west_lat: 43.65133693560138, south_west_lng: -79.38577492065428},
-        Bounds {north_east_lat: 43.65413151052596, north_east_lng: -79.38191253967284, south_west_lat: 43.652268475025124, south_west_lng: -79.38448746032714},
-        Bounds {north_east_lat: 43.653665757069085, north_east_lng: -79.38255626983641, south_west_lat: 43.652734239318676, south_west_lng: -79.38384373016356},
-        Bounds {north_east_lat: 43.653432878986074, north_east_lng: -79.3828781349182, south_west_lat: 43.65296712011086, south_west_lng: -79.38352186508178},
-        Bounds {north_east_lat: 43.6533164396059, north_east_lng: -79.3830390674591, south_west_lat: 43.653083560168305, south_west_lng: -79.38336093254088}
+        Bounds {north: 50.800061065188856, east: -68.83632499999999, south: 35.542543366259075, west: -89.93007499999999},
+        Bounds {north: 47.34741387849921, east: -74.10976249999999, south: 39.71693995491094, west: -84.65663749999999},
+        Bounds {north: 45.530626397270055, east: -76.74648124999999, south: 41.71519339348616, west: -82.01991874999999},
+        Bounds {north: 44.599495541698985, east: -78.06484062499999, south: 42.69175511293576, west: -80.70155937499999},
+        Bounds {north: 44.12824279122392, east: -78.72402031249999, south: 43.17436960409823, west: -80.04237968749999},
+        Bounds {north: 43.891195023324286, east: -79.05361015624999, south: 43.414258058734866, west: -79.71278984374999},
+        Bounds {north: 43.77231589906095, east: -79.21840507812499, south: 43.5338473704056, west: -79.54799492187499},
+        Bounds {north: 43.712787543711634, east: -79.30080253906249, south: 43.59355327358944, west: -79.46559746093749},
+        Bounds {north: 43.68300117005328, east: -79.34200126953124, south: 43.623384034267886, west: -79.42439873046874},
+        Bounds {north: 43.66810243453164, east: -79.36260063476561, south: 43.63829386654838, west: -79.40379936523436},
+        Bounds {north: 43.66065167963645, east: -79.3729003173828, south: 43.64574739563353, west: -79.39349968261718},
+        Bounds {north: 43.65692595541019, east: -79.3780501586914, south: 43.6494738134073, west: -79.38834984130858},
+        Bounds {north: 43.65506300660299, east: -79.38062507934569, south: 43.65133693560138, west: -79.38577492065428},
+        Bounds {north: 43.65413151052596, east: -79.38191253967284, south: 43.652268475025124, west: -79.38448746032714},
+        Bounds {north: 43.653665757069085, east: -79.38255626983641, south: 43.652734239318676, west: -79.38384373016356},
+        Bounds {north: 43.653432878986074, east: -79.3828781349182, south: 43.65296712011086, west: -79.38352186508178},
+        Bounds {north: 43.6533164396059, east: -79.3830390674591, south: 43.653083560168305, west: -79.38336093254088}
     ];
 
     #[test]
     fn compare_bound_extension_to_gmap() {
         let bounds = Bounds {
-            north_east_lat: 43.6532,
-            north_east_lng: -79.3832,
-            south_west_lat: 43.6532,
-            south_west_lng: -79.3832,
+            north: 43.6532,
+            east: -79.3832,
+            south: 43.6532,
+            west: -79.3832,
         };
 
         for (i, g_bounds) in GMAP_BOUNDS.iter().enumerate() {
@@ -296,10 +296,10 @@ mod tests {
 
     fn bounds_error(gmap: &Bounds, wasm: &Bounds, zoom: usize) {
         print!("z{:02} errors: | ", zoom);
-        print!("NE lat: {:9.6} | ", percent_error(gmap.north_east_lat, wasm.north_east_lat));
-        print!("NE lng: {:9.6} | ", percent_error(gmap.north_east_lng, wasm.north_east_lng));
-        print!("SW lat: {:9.6} | ", percent_error(gmap.south_west_lat, wasm.south_west_lat));
-        print!("SW lng: {:9.6} | ", percent_error(gmap.south_west_lng, wasm.south_west_lng));
+        print!("N: {:9.6} | ", percent_error(gmap.north, wasm.north));
+        print!("E: {:9.6} | ", percent_error(gmap.east, wasm.east));
+        print!("S: {:9.6} | ", percent_error(gmap.south, wasm.south));
+        print!("W: {:9.6} | ", percent_error(gmap.west, wasm.west));
         println!();
     }
 
