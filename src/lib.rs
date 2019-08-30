@@ -142,10 +142,10 @@ pub fn cluster_points_in_bounds(bounds_val: &JsValue, zoom: usize) -> JsValue {
         console::time_end_with_label("clustering");
         console::time_with_label("out-of-wasm");
     }
-    return JsValue::from_serde(&clusters).unwrap();
+    JsValue::from_serde(&clusters).unwrap()
 }
 
-pub fn cluster_points(points: &Vec<Point>, map_bounds: &Bounds, zoom: usize) -> Vec<Cluster> {
+pub fn cluster_points(points: &[Point], map_bounds: &Bounds, zoom: usize) -> Vec<Cluster> {
     let mut clusters = Vec::new();
     for point in points.iter() {
         if map_bounds.contains(point) {
@@ -198,7 +198,7 @@ pub fn distance_between_points(p1: &Point, p2: &Point) -> f64 {
         + p1.lat.to_radians().cos() * p2.lat.to_radians().cos() * (delta_longitude / 2.0).sin().powi(2);
     let central_angle = 2.0 * central_angle_inner.sqrt().asin();
 
-    return earth_radius_kilometer * central_angle;
+    earth_radius_kilometer * central_angle
 }
 
 pub fn calculate_extended_bounds(bounds: &Bounds, zoom: usize) -> Bounds {
