@@ -321,6 +321,7 @@ mod tests {
             west: -79.3832,
         };
 
+        println!("zoom, north, east, south, west");
         for (i, g_bounds) in GMAP_BOUNDS.iter().enumerate() {
             let zoom = i + 3;
             let extended_bounds = calculate_extended_bounds(&bounds, zoom);
@@ -329,11 +330,11 @@ mod tests {
     }
 
     fn bounds_error(gmap: &Bounds, wasm: &Bounds, zoom: usize) {
-        print!("z{:02} errors: | ", zoom);
-        print!("N: {:9.6} | ", percent_error(gmap.north, wasm.north));
-        print!("E: {:9.6} | ", percent_error(gmap.east, wasm.east));
-        print!("S: {:9.6} | ", percent_error(gmap.south, wasm.south));
-        print!("W: {:9.6} | ", percent_error(gmap.west, wasm.west));
+        print!("{:02}, ", zoom);
+        print!("{:11.8}, ", percent_error(gmap.north, wasm.north));
+        print!("{:11.8}, ", percent_error(gmap.east, wasm.east));
+        print!("{:11.8}, ", percent_error(gmap.south, wasm.south));
+        print!("{:11.8}  ", percent_error(gmap.west, wasm.west));
         println!();
     }
 
