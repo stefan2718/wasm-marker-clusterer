@@ -7,6 +7,8 @@ extern crate uuid;
 extern crate serde_derive;
 #[macro_use]
 extern crate lazy_static;
+#[macro_use]
+extern crate optional_struct;
 
 mod utils;
 
@@ -25,7 +27,8 @@ lazy_static! {
     });
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Debug, OptionalStruct)]
+#[optional_derive(Deserialize)]
 pub struct Config {
     grid_size: f64,
     average_center: bool,
@@ -41,12 +44,8 @@ impl Config {
 pub fn configure(config: &JsValue) {
     utils::set_panic_hook();
 
-    let new_config: Config = config.into_serde().unwrap();
-    let old_config = &mut CONFIG.lock().unwrap();
-
-    old_config.grid_size = new_config.grid_size;
-    old_config.average_center = new_config.average_center;
-    old_config.log_time = new_config.log_time;
+    let new_config: OptionalConfig = config.into_serde().unwrap();
+    CONFIG.lock().unwrap().apply_options(new_config);
 }
 
 // Cluster struct
