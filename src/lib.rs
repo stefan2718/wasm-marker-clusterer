@@ -66,7 +66,6 @@ impl Cluster {
         Point {
             lat: self.center_lat,
             lng: self.center_lng,
-            price: 0
         }
     }
 
@@ -111,12 +110,6 @@ impl Bounds {
 pub struct Point {
     lat: f64,
     lng: f64,
-    price: u32,
-}
-
-#[wasm_bindgen]
-impl Point {
-
 }
 
 #[wasm_bindgen]
@@ -228,7 +221,7 @@ pub fn calculate_extended_bounds(bounds: &Bounds, zoom: usize) -> Bounds {
 mod tests {
     use super::*;
 
-    static SAMPLE_POINT: Point = Point { lat: 43.0, lng: -79.0, price: 1 };
+    static SAMPLE_POINT: Point = Point { lat: 43.0, lng: -79.0 };
     static DEFAULT_ZOOM: usize = 8;
     static DEFAULT_BOUNDS: Bounds = Bounds {
         north: 45.0,
@@ -239,7 +232,7 @@ mod tests {
 
     #[test]
     fn clusters_include_all_points() {
-        let sample_points = vec![ Point { lat: 43.0, lng: -79.0, price: 1 }; 5 ];
+        let sample_points = vec![ Point { lat: 43.0, lng: -79.0 }; 5 ];
 
         let clustered = cluster_points(&sample_points, &DEFAULT_BOUNDS, DEFAULT_ZOOM);
         let cluster_point_count = clustered.iter().fold(0, |sum, ref x| sum + x.count );
@@ -267,7 +260,7 @@ mod tests {
 
     #[test]
     fn test_100000_points() {
-        let sample_points = vec![ Point { lat: 43.0, lng: -79.0, price: 3 }; 100000 ];
+        let sample_points = vec![ Point { lat: 43.0, lng: -79.0 }; 100000 ];
         
         let clustered = cluster_points(&sample_points, &DEFAULT_BOUNDS, DEFAULT_ZOOM);
         assert_eq!(clustered.len(), 1);
