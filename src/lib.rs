@@ -13,13 +13,16 @@ extern crate optional_struct;
 mod utils;
 
 use std::sync::Mutex;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use uuid::Uuid;
 use wasm_bindgen::prelude::*;
 use web_sys::console;
 use std::f64;
 
 lazy_static! {
-    static ref ALL_POINTS: Mutex<Vec<Point>> = Mutex::new(Vec::new());
+    static ref ALL_POINTS: Mutex<Vec<UniquePoint>> = Mutex::new(Vec::new());
+    static ref CLUSTERS: Mutex<Vec<Cluster>> = Mutex::new(Vec::new());
+    static ref ZOOM: AtomicUsize = AtomicUsize::new(0);
     static ref CONFIG: Mutex<Config> = Mutex::new(Config {
         grid_size: 60.0,
         average_center: false,
@@ -50,13 +53,13 @@ pub fn configure(config: &JsValue) {
 
 // Cluster struct
 // - Should maintain list of points in the cluster, but not return that list to JS
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct Cluster {
     uuid: Uuid,
     count: u32,
     center_lat: f64,
     center_lng: f64,
-    // points: Vec<&Point>,
+    points: Vec<UniquePoint>,
     bounds: Bounds,
 }
 
@@ -69,8 +72,12 @@ impl Cluster {
         }
     }
 
-    fn add_marker(&mut self, new_point: &Point, zoom: usize) {
+    fn add_marker(&mut self, new_point: &UniquePoint, zoom: usize) {
+        if self.points.contains(new_point) {
+            return;
+        }
         self.count += 1;
+        self.points.push(new_point.clone());
         if CONFIG.lock().unwrap().average_center {
             self.center_lat = ((self.center_lat * f64::from(self.count)) + new_point.lat) / f64::from(self.count + 1);
             self.center_lng = ((self.center_lng * f64::from(self.count)) + new_point.lng) / f64::from(self.count + 1);
@@ -98,7 +105,7 @@ pub struct Bounds {
 
 #[wasm_bindgen]
 impl Bounds {
-    fn contains(&self, point: &Point) -> bool {
+    fn contains(&self, point: &UniquePoint) -> bool {
         self.north > point.lat &&
         self.east > point.lng &&
         self.south < point.lat &&
@@ -112,11 +119,36 @@ pub struct Point {
     lng: f64,
 }
 
+#[derive(Clone, Debug, Serialize)]
+pub struct UniquePoint {
+    lat: f64,
+    lng: f64,
+    #[serde(skip)]
+    uuid: Uuid,
+}
+
+impl From<&Point> for UniquePoint {
+    fn from(point: &Point) -> Self {
+        UniquePoint {
+            lat: point.lat,
+            lng: point.lng,
+            uuid: Uuid::new_v4(),
+        }
+    }
+}
+
+impl PartialEq for UniquePoint {
+    fn eq(&self, other: &UniquePoint) -> bool {
+        return self.uuid == other.uuid;
+    }
+}
+
 #[wasm_bindgen]
 pub fn add_points(points_val: &JsValue) {
     utils::set_panic_hook();
     // TODO see if .extend() is faster/better than .append() ?
-    ALL_POINTS.lock().unwrap().append(&mut points_val.into_serde().unwrap());
+    let points: &mut Vec<Point> = &mut points_val.into_serde().unwrap();
+    ALL_POINTS.lock().unwrap().append(&mut points.iter().map(|p| UniquePoint::from(p)).collect::<Vec<_>>());
 }
 
 #[wasm_bindgen]
@@ -129,25 +161,27 @@ pub fn cluster_points_in_bounds(bounds_val: &JsValue, zoom: usize) -> JsValue {
         console::time_end_with_label("into-wasm");
         console::time_with_label("clustering");
     }
-    let clusters = cluster_points(&ALL_POINTS.lock().unwrap(), &map_bounds, zoom);
+    let clusters = &mut CLUSTERS.lock().unwrap();
+    if ZOOM.swap(zoom, Ordering::Relaxed) != zoom {
+        clusters.clear();
+    }
+    cluster_points(clusters, &ALL_POINTS.lock().unwrap(), &map_bounds, zoom);
     if log_time {
         console::time_end_with_label("clustering");
         console::time_with_label("out-of-wasm");
     }
-    JsValue::from_serde(&clusters).unwrap()
+    JsValue::from_serde(&clusters.to_vec()).unwrap()
 }
 
-pub fn cluster_points(points: &[Point], map_bounds: &Bounds, zoom: usize) -> Vec<Cluster> {
-    let mut clusters = Vec::new();
+pub fn cluster_points(existing_clusters: &mut Vec<Cluster>, points: &[UniquePoint], map_bounds: &Bounds, zoom: usize) {
     for point in points.iter() {
         if map_bounds.contains(point) {
-            add_to_closest_cluster(&mut clusters, point, zoom);
+            add_to_closest_cluster(existing_clusters, point, zoom);
         }
     }
-    clusters
 }
 
-pub fn add_to_closest_cluster(clusters: &mut Vec<Cluster>, new_point: &Point, zoom: usize) {
+pub fn add_to_closest_cluster(clusters: &mut Vec<Cluster>, new_point: &UniquePoint, zoom: usize) {
     let mut current_distance: f64;
     let mut least_distance = 40000.0; // Some large number
     let mut cluster_index_to_add_to: Option<usize> = None;
@@ -170,6 +204,7 @@ pub fn add_to_closest_cluster(clusters: &mut Vec<Cluster>, new_point: &Point, zo
             count: 1,
             center_lat: new_point.lat,
             center_lng: new_point.lng,
+            points: vec![new_point.clone()],
             bounds: calculate_extended_bounds(&Bounds {
                 north: new_point.lat,
                 east: new_point.lng,
@@ -180,7 +215,7 @@ pub fn add_to_closest_cluster(clusters: &mut Vec<Cluster>, new_point: &Point, zo
     };
 }
 
-pub fn distance_between_points(p1: &Point, p2: &Point) -> f64 {
+pub fn distance_between_points(p1: &Point, p2: &UniquePoint) -> f64 {
     let earth_radius_kilometer = 6371.0_f64;
 
     let delta_latitude = (p1.lat - p2.lat).to_radians();
@@ -232,9 +267,10 @@ mod tests {
 
     #[test]
     fn clusters_include_all_points() {
-        let sample_points = vec![ Point { lat: 43.0, lng: -79.0 }; 5 ];
+        let sample_points = vec![ Point { lat: 43.0, lng: -79.0 }; 5 ].iter().map(|p| UniquePoint::from(p)).collect::<Vec<_>>();
 
-        let clustered = cluster_points(&sample_points, &DEFAULT_BOUNDS, DEFAULT_ZOOM);
+        let clustered = &mut Vec::new();
+        cluster_points(clustered, &sample_points, &DEFAULT_BOUNDS, DEFAULT_ZOOM);
         let cluster_point_count = clustered.iter().fold(0, |sum, ref x| sum + x.count );
         assert_eq!(sample_points.len() as u32, cluster_point_count);
     }
@@ -242,15 +278,17 @@ mod tests {
     #[test]
     fn add_some_points_to_a_cluster() {
         let mut sample_clusters: Vec<Cluster> = Vec::new();
+        let p1 = UniquePoint::from(&SAMPLE_POINT);
+        let p2 = UniquePoint::from(&SAMPLE_POINT);
 
-        add_to_closest_cluster(&mut sample_clusters, &SAMPLE_POINT, DEFAULT_ZOOM);
+        add_to_closest_cluster(&mut sample_clusters, &p1, DEFAULT_ZOOM);
 
         assert_eq!(sample_clusters.len(), 1);
         assert_eq!(sample_clusters[0].count, 1);
         assert_eq!(sample_clusters[0].center_lat, SAMPLE_POINT.lat);
         assert_eq!(sample_clusters[0].center_lng, SAMPLE_POINT.lng);
 
-        add_to_closest_cluster(&mut sample_clusters, &SAMPLE_POINT, DEFAULT_ZOOM);
+        add_to_closest_cluster(&mut sample_clusters, &p2, DEFAULT_ZOOM);
 
         assert_eq!(sample_clusters.len(), 1);
         assert_eq!(sample_clusters[0].count, 2);
@@ -259,12 +297,13 @@ mod tests {
     }
 
     #[test]
-    fn test_100000_points() {
-        let sample_points = vec![ Point { lat: 43.0, lng: -79.0 }; 100000 ];
+    fn test_10000_points() {
+        let sample_points = vec![ Point { lat: 43.0, lng: -79.0 }; 10000 ].iter().map(|p| UniquePoint::from(p)).collect::<Vec<_>>();
         
-        let clustered = cluster_points(&sample_points, &DEFAULT_BOUNDS, DEFAULT_ZOOM);
+        let clustered = &mut Vec::new();
+        cluster_points(clustered, &sample_points, &DEFAULT_BOUNDS, DEFAULT_ZOOM);
         assert_eq!(clustered.len(), 1);
-        assert_eq!(clustered.get(0).unwrap().count, 100000);
+        assert_eq!(clustered.get(0).unwrap().count, 10000);
     }
 
     #[test]
