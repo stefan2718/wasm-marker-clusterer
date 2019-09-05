@@ -132,7 +132,7 @@ impl From<&Marker> for UniqueMarker {
 
 impl PartialEq for UniqueMarker {
     fn eq(&self, other: &UniqueMarker) -> bool {
-        return self.uuid == other.uuid;
+        self.uuid == other.uuid
     }
 }
 
@@ -141,7 +141,7 @@ pub fn add_markers(markers_val: &JsValue) {
     utils::set_panic_hook();
     // TODO see if .extend() is faster/better than .append() ?
     let markers: &mut Vec<Marker> = &mut markers_val.into_serde().unwrap();
-    ALL_POINTS.lock().unwrap().append(&mut markers.iter().map(|p| UniqueMarker::from(p)).collect::<Vec<_>>());
+    ALL_POINTS.lock().unwrap().append(&mut markers.iter().map(UniqueMarker::from).collect::<Vec<_>>());
 }
 
 #[wasm_bindgen(js_name = clusterMarkersInBounds)]
@@ -279,7 +279,7 @@ mod tests {
 
     #[test]
     fn clusters_include_all_markers() {
-        let sample_markers = vec![ Marker { lat: 43.0, lng: -79.0 }; 5 ].iter().map(|p| UniqueMarker::from(p)).collect::<Vec<_>>();
+        let sample_markers = vec![ Marker { lat: 43.0, lng: -79.0 }; 5 ].iter().map(UniqueMarker::from).collect::<Vec<_>>();
 
         let clustered = &mut Vec::new();
         cluster_markers(clustered, &sample_markers, &DEFAULT_BOUNDS, DEFAULT_ZOOM);
@@ -310,7 +310,7 @@ mod tests {
 
     #[test]
     fn test_10000_markers() {
-        let sample_markers = vec![ Marker { lat: 43.0, lng: -79.0 }; 10000 ].iter().map(|p| UniqueMarker::from(p)).collect::<Vec<_>>();
+        let sample_markers = vec![ Marker { lat: 43.0, lng: -79.0 }; 10000 ].iter().map(UniqueMarker::from).collect::<Vec<_>>();
         
         let clustered = &mut Vec::new();
         cluster_markers(clustered, &sample_markers, &DEFAULT_BOUNDS, DEFAULT_ZOOM);
