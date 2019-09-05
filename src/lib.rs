@@ -18,6 +18,7 @@ use uuid::Uuid;
 use wasm_bindgen::prelude::*;
 use web_sys::console;
 use std::f64;
+use std::f64::consts::PI;
 
 lazy_static! {
     static ref ALL_POINTS: Mutex<Vec<UniquePoint>> = Mutex::new(Vec::new());
@@ -229,8 +230,8 @@ pub fn distance_between_points(p1: &Point, p2: &UniquePoint) -> f64 {
 }
 
 pub fn calculate_extended_bounds(bounds: &Bounds, zoom: usize) -> Bounds {
-    let mut north_east_pix = googleprojection::from_ll_to_pixel(&(bounds.east, bounds.north), zoom).unwrap();
-    let mut south_west_pix = googleprojection::from_ll_to_pixel(&(bounds.west, bounds.south), zoom).unwrap();
+    let mut north_east_pix = from_ll_to_pixel(&(bounds.east, bounds.north), zoom).unwrap();
+    let mut south_west_pix = from_ll_to_pixel(&(bounds.west, bounds.south), zoom).unwrap();
 
     let grid_size = CONFIG.lock().unwrap().grid_size;
 
@@ -249,6 +250,23 @@ pub fn calculate_extended_bounds(bounds: &Bounds, zoom: usize) -> Bounds {
         east: north_east_latlng.0,
         south: south_west_latlng.1,
         west: south_west_latlng.0,
+    }
+}
+
+pub fn from_ll_to_pixel(ll: &(f64, f64), zoom: usize) -> Option<(f64, f64)> {
+    if 30 > zoom {
+        let c = 256.0 * 2.0_f64.powi(zoom as i32);
+        let bc = c / 360.0;
+        let cc = c / (2.0 * PI);
+
+        let d = c / 2.0;
+        let e = d + ll.0 * bc;
+        let f = ll.1.to_radians().sin().max(-0.9999).min(0.9999);
+        let g = d + 0.5 * ((1.0 + f) / (1.0 - f)).ln() * -cc;
+
+        Some((e, g))
+    } else {
+        None
     }
 }
 
