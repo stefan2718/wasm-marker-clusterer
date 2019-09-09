@@ -20,7 +20,7 @@ features = ["serde-serialize"]
 serde = "1.0.94"
 serde_derive = "1.0.94"
 web-sys = { version = "0.3", features = [ "console" ] }
-googleprojection = "1.1.0"
+googleprojection = "1.2.0"
 uuid = { version = "0.7", features = ["serde", "v4", "wasm-bindgen"] }
 lazy_static = "1.4.0"
 optional_struct = "0.2.0"

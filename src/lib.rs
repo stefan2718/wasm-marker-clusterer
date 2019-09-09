@@ -18,7 +18,6 @@ use uuid::Uuid;
 use wasm_bindgen::prelude::*;
 use web_sys::console;
 use std::f64;
-use std::f64::consts::PI;
 
 lazy_static! {
     static ref ALL_POINTS: Mutex<Vec<UniqueMarker>> = Mutex::new(Vec::new());
@@ -53,7 +52,7 @@ pub fn configure(config: &JsValue) {
 }
 
 // Cluster struct
-// TODO: Optionally return markers?
+// TODO: Optionally return markers? https://serde.rs/field-attrs.html#skip_serializing_if
 #[derive(Debug, Serialize, Clone)]
 pub struct Cluster {
     uuid: Uuid,
@@ -224,8 +223,8 @@ pub fn distance_between_markers(p1: &Marker, p2: &UniqueMarker) -> f64 {
 }
 
 pub fn calculate_extended_bounds(bounds: &Bounds, zoom: usize) -> Bounds {
-    let mut north_east_pix = from_ll_to_pixel(&(bounds.east, bounds.north), zoom).unwrap();
-    let mut south_west_pix = from_ll_to_pixel(&(bounds.west, bounds.south), zoom).unwrap();
+    let mut north_east_pix = googleprojection::from_ll_to_subpixel(&(bounds.east, bounds.north), zoom).unwrap();
+    let mut south_west_pix = googleprojection::from_ll_to_subpixel(&(bounds.west, bounds.south), zoom).unwrap();
 
     let grid_size = CONFIG.lock().unwrap().grid_size;
 
@@ -244,23 +243,6 @@ pub fn calculate_extended_bounds(bounds: &Bounds, zoom: usize) -> Bounds {
         east: north_east_latlng.0,
         south: south_west_latlng.1,
         west: south_west_latlng.0,
-    }
-}
-
-pub fn from_ll_to_pixel(ll: &(f64, f64), zoom: usize) -> Option<(f64, f64)> {
-    if 30 > zoom {
-        let c = 256.0 * 2.0_f64.powi(zoom as i32);
-        let bc = c / 360.0;
-        let cc = c / (2.0 * PI);
-
-        let d = c / 2.0;
-        let e = d + ll.0 * bc;
-        let f = ll.1.to_radians().sin().max(-0.9999).min(0.9999);
-        let g = d + 0.5 * ((1.0 + f) / (1.0 - f)).ln() * -cc;
-
-        Some((e, g))
-    } else {
-        None
     }
 }
 
@@ -333,56 +315,5 @@ mod tests {
         assert!(bounds.east < extended_bounds.east);
         assert!(bounds.south > extended_bounds.south);
         assert!(bounds.west > extended_bounds.west);
-    }
-
-    // zoom level is (index + 3) 
-    static GMAP_BOUNDS: [Bounds; 17] = [
-        Bounds {north: 50.800061065188856, east: -68.83632499999999, south: 35.542543366259075, west: -89.93007499999999},
-        Bounds {north: 47.34741387849921, east: -74.10976249999999, south: 39.71693995491094, west: -84.65663749999999},
-        Bounds {north: 45.530626397270055, east: -76.74648124999999, south: 41.71519339348616, west: -82.01991874999999},
-        Bounds {north: 44.599495541698985, east: -78.06484062499999, south: 42.69175511293576, west: -80.70155937499999},
-        Bounds {north: 44.12824279122392, east: -78.72402031249999, south: 43.17436960409823, west: -80.04237968749999},
-        Bounds {north: 43.891195023324286, east: -79.05361015624999, south: 43.414258058734866, west: -79.71278984374999},
-        Bounds {north: 43.77231589906095, east: -79.21840507812499, south: 43.5338473704056, west: -79.54799492187499},
-        Bounds {north: 43.712787543711634, east: -79.30080253906249, south: 43.59355327358944, west: -79.46559746093749},
-        Bounds {north: 43.68300117005328, east: -79.34200126953124, south: 43.623384034267886, west: -79.42439873046874},
-        Bounds {north: 43.66810243453164, east: -79.36260063476561, south: 43.63829386654838, west: -79.40379936523436},
-        Bounds {north: 43.66065167963645, east: -79.3729003173828, south: 43.64574739563353, west: -79.39349968261718},
-        Bounds {north: 43.65692595541019, east: -79.3780501586914, south: 43.6494738134073, west: -79.38834984130858},
-        Bounds {north: 43.65506300660299, east: -79.38062507934569, south: 43.65133693560138, west: -79.38577492065428},
-        Bounds {north: 43.65413151052596, east: -79.38191253967284, south: 43.652268475025124, west: -79.38448746032714},
-        Bounds {north: 43.653665757069085, east: -79.38255626983641, south: 43.652734239318676, west: -79.38384373016356},
-        Bounds {north: 43.653432878986074, east: -79.3828781349182, south: 43.65296712011086, west: -79.38352186508178},
-        Bounds {north: 43.6533164396059, east: -79.3830390674591, south: 43.653083560168305, west: -79.38336093254088}
-    ];
-
-    #[test]
-    fn compare_bound_extension_to_gmap() {
-        let bounds = Bounds {
-            north: 43.6532,
-            east: -79.3832,
-            south: 43.6532,
-            west: -79.3832,
-        };
-
-        println!("zoom, north, east, south, west");
-        for (i, g_bounds) in GMAP_BOUNDS.iter().enumerate() {
-            let zoom = i + 3;
-            let extended_bounds = calculate_extended_bounds(&bounds, zoom);
-            bounds_error(&g_bounds, &extended_bounds, zoom);
-        }
-    }
-
-    fn bounds_error(gmap: &Bounds, wasm: &Bounds, zoom: usize) {
-        print!("{:02}, ", zoom);
-        print!("{:11.8}, ", percent_error(gmap.north, wasm.north));
-        print!("{:11.8}, ", percent_error(gmap.east, wasm.east));
-        print!("{:11.8}, ", percent_error(gmap.south, wasm.south));
-        print!("{:11.8}  ", percent_error(gmap.west, wasm.west));
-        println!();
-    }
-
-    fn percent_error(expected: f64, achieved: f64) -> f64 {
-        (achieved - expected)/expected.abs() * 100.0
     }
 }
