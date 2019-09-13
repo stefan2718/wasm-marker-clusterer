@@ -117,6 +117,8 @@ pub struct UniqueMarker {
     lng: f64,
     #[serde(skip)]
     uuid: Uuid,
+    #[serde(skip)]
+    is_added: bool,
 }
 
 impl From<&Marker> for UniqueMarker {
@@ -125,6 +127,7 @@ impl From<&Marker> for UniqueMarker {
             lat: point.lat,
             lng: point.lng,
             uuid: Uuid::new_v4(),
+            is_added: false,
         }
     }
 }
@@ -156,8 +159,11 @@ pub fn cluster_markers_in_bounds(bounds_val: &JsValue, zoom: usize) -> JsValue {
     let clusters = &mut CLUSTERS.lock().unwrap();
     if ZOOM.swap(zoom, Ordering::Relaxed) != zoom {
         clusters.clear();
+        for marker in ALL_POINTS.lock().unwrap().iter_mut() {
+            marker.is_added = false;
+        }
     }
-    cluster_markers(clusters, &ALL_POINTS.lock().unwrap(), &map_bounds, zoom);
+    cluster_markers(clusters, &mut ALL_POINTS.lock().unwrap(), &map_bounds, zoom);
     if log_time {
         console::time_end_with_label("clustering");
         console::time_with_label("out-of-wasm");
@@ -165,9 +171,10 @@ pub fn cluster_markers_in_bounds(bounds_val: &JsValue, zoom: usize) -> JsValue {
     JsValue::from_serde(&clusters.to_vec()).unwrap()
 }
 
-pub fn cluster_markers(existing_clusters: &mut Vec<Cluster>, markers: &[UniqueMarker], map_bounds: &Bounds, zoom: usize) {
-    for point in markers.iter() {
-        if map_bounds.contains(point) {
+pub fn cluster_markers(existing_clusters: &mut Vec<Cluster>, markers: &mut Vec<UniqueMarker>, map_bounds: &Bounds, zoom: usize) {
+    for point in markers.iter_mut() {
+        if !point.is_added && map_bounds.contains(point) {
+            point.is_added = true;
             add_to_closest_cluster(existing_clusters, point, zoom);
         }
     }
@@ -261,10 +268,10 @@ mod tests {
 
     #[test]
     fn clusters_include_all_markers() {
-        let sample_markers = vec![ Marker { lat: 43.0, lng: -79.0 }; 5 ].iter().map(UniqueMarker::from).collect::<Vec<_>>();
+        let mut sample_markers = vec![ Marker { lat: 43.0, lng: -79.0 }; 5 ].iter().map(UniqueMarker::from).collect::<Vec<_>>();
 
         let clustered = &mut Vec::new();
-        cluster_markers(clustered, &sample_markers, &DEFAULT_BOUNDS, DEFAULT_ZOOM);
+        cluster_markers(clustered, &mut sample_markers, &DEFAULT_BOUNDS, DEFAULT_ZOOM);
         let cluster_point_count = clustered.iter().fold(0, |sum, ref x| sum + x.size );
         assert_eq!(sample_markers.len() as u32, cluster_point_count);
     }
@@ -292,10 +299,10 @@ mod tests {
 
     #[test]
     fn test_10000_markers() {
-        let sample_markers = vec![ Marker { lat: 43.0, lng: -79.0 }; 10000 ].iter().map(UniqueMarker::from).collect::<Vec<_>>();
+        let mut sample_markers = vec![ Marker { lat: 43.0, lng: -79.0 }; 10000 ].iter().map(UniqueMarker::from).collect::<Vec<_>>();
         
         let clustered = &mut Vec::new();
-        cluster_markers(clustered, &sample_markers, &DEFAULT_BOUNDS, DEFAULT_ZOOM);
+        cluster_markers(clustered, &mut sample_markers, &DEFAULT_BOUNDS, DEFAULT_ZOOM);
         assert_eq!(clustered.len(), 1);
         assert_eq!(clustered.get(0).unwrap().size, 10000);
     }
