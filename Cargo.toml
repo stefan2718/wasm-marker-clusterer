@@ -7,13 +7,14 @@ license = "GPL-3.0-only"
 repository = "https://github.com/stefan2718/webassembly-marker-clusterer"
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "rlib"]
 
 [features]
 default = ["console_error_panic_hook"]
 
 [dependencies.wasm-bindgen]
 version = "=0.2.34"
+# TODO There was something about a different kind of serde that might be faster?
 features = ["serde-serialize"]
 
 [dependencies]
@@ -41,6 +42,18 @@ console_error_panic_hook = { version = "0.1.5", optional = true }
 # [dev-dependencies]
 # wasm-bindgen-test = "0.2"
 
-# [profile.release]
-# # Tell `rustc` to optimize for small code size.
+[dev-dependencies]
+criterion = "0.3"
+csv = "1.1.1"
+
+[profile.release]
+lto = true
+# Tell `rustc` to optimize for small code size.
 # opt-level = "s"
+
+[profile.bench]
+lto = true
+
+[[bench]]
+name = "clustering"
+harness = false

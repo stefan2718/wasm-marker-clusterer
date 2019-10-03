@@ -89,10 +89,10 @@ impl Cluster {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Bounds {
-    north: f64,
-    east: f64,
-    south: f64,
-    west: f64,
+    pub north: f64,
+    pub east: f64,
+    pub south: f64,
+    pub west: f64,
 }
 
 #[wasm_bindgen]
@@ -107,8 +107,8 @@ impl Bounds {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Marker {
-    lat: f64,
-    lng: f64,
+    pub lat: f64,
+    pub lng: f64,
 }
 
 #[derive(Clone, Debug, Serialize)]
