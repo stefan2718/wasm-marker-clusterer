@@ -10,8 +10,6 @@ extern crate lazy_static;
 #[macro_use]
 extern crate optional_struct;
 
-mod utils;
-
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use uuid::Uuid;
@@ -44,9 +42,15 @@ impl Config {
 }
 
 #[wasm_bindgen]
-pub fn configure(config: &JsValue) {
-    utils::set_panic_hook();
+pub fn main_js() -> Result<(), JsValue> {
+    #[cfg(debug_assertions)]
+    console_error_panic_hook::set_once();
 
+    Ok(())
+}
+
+#[wasm_bindgen]
+pub fn configure(config: &JsValue) {
     let new_config: OptionalConfig = config.into_serde().unwrap();
     CONFIG.lock().unwrap().apply_options(new_config);
 }
@@ -140,7 +144,6 @@ impl PartialEq for UniqueMarker {
 
 #[wasm_bindgen(js_name = addMarkers)]
 pub fn add_markers(markers_val: &JsValue) {
-    utils::set_panic_hook();
     // TODO see if .extend() is faster/better than .append() ?
     let markers: &mut Vec<Marker> = &mut markers_val.into_serde().unwrap();
     ALL_POINTS.lock().unwrap().append(&mut markers.iter().map(UniqueMarker::from).collect::<Vec<_>>());
@@ -148,7 +151,6 @@ pub fn add_markers(markers_val: &JsValue) {
 
 #[wasm_bindgen(js_name = clusterMarkersInBounds)]
 pub fn cluster_markers_in_bounds(bounds_val: &JsValue, zoom: usize) -> JsValue {
-    utils::set_panic_hook();
     let log_time = CONFIG.lock().unwrap().log_time;
 
     let map_bounds: Bounds = calculate_extended_bounds(&bounds_val.into_serde().unwrap(), zoom);
@@ -191,8 +193,6 @@ pub fn add_to_closest_cluster(clusters: &mut Vec<Cluster>, new_point: &UniqueMar
             cluster_index_to_add_to = Some(i);
         }
     }
-    // TODO make more idiomatic?
-    // cluster_index_to_add_to = clusters.iter().min_by_key(|cluster| distance_between_markers(&cluster.get_center(), new_point));
 
     if cluster_index_to_add_to.is_some() && clusters[cluster_index_to_add_to.unwrap()].bounds.contains(&new_point) {
         let index = cluster_index_to_add_to.unwrap();
