@@ -14,9 +14,9 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 # TODO There was something about a different kind of serde that might be faster?
-wasm-bindgen = { version = "=0.2.34", features = ["serde-serialize"] }
-serde = "1.0.94"
-serde_derive = "1.0.94"
+wasm-bindgen = { version = "0.2.51", features = ["serde-serialize"] }
+serde = "1.0.101"
+serde_derive = "1.0.101"
 web-sys = { version = "0.3", features = [ "console" ] }
 googleprojection = "1.2.0"
 uuid = { version = "0.7", features = ["serde", "v4", "wasm-bindgen"] }
@@ -28,7 +28,7 @@ optional_struct = "0.2.0"
 # all the `std::fmt` and `std::panicking` infrastructure, so it's only enabled
 # in debug mode.
 [target."cfg(debug_assertions)".dependencies]
-console_error_panic_hook = "0.1.5"
+console_error_panic_hook = "0.1.6"
 
 [dev-dependencies]
 # wasm-bindgen-test = "0.2"
@@ -37,6 +37,7 @@ csv = "1.1.1"
 
 [profile.release]
 lto = true
+debug = true
 # Tell `rustc` to optimize for small code size.
 # opt-level = "s"
 
