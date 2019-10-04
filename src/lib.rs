@@ -1,6 +1,5 @@
 extern crate wasm_bindgen;
 extern crate web_sys;
-extern crate googleprojection;
 extern crate uuid;
 
 #[macro_use]
@@ -9,6 +8,19 @@ extern crate serde_derive;
 extern crate lazy_static;
 #[macro_use]
 extern crate optional_struct;
+
+pub mod structs;
+use structs::cluster::Cluster;
+use structs::marker::Marker;
+use structs::bounds::Bounds;
+use structs::unique_marker::UniqueMarker;
+
+mod config;
+use config::Config;
+use config::OptionalConfig;
+
+mod utils;
+use utils::calculate_extended_bounds;
 
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -28,20 +40,7 @@ lazy_static! {
     });
 }
 
-#[derive(Debug, OptionalStruct)]
-#[optional_derive(Deserialize)]
-pub struct Config {
-    grid_size: f64,
-    average_center: bool,
-    log_time: bool,
-}
-
-#[wasm_bindgen]
-impl Config {
-
-}
-
-#[wasm_bindgen]
+#[wasm_bindgen(start)]
 pub fn main_js() -> Result<(), JsValue> {
     #[cfg(debug_assertions)]
     console_error_panic_hook::set_once();
@@ -55,93 +54,6 @@ pub fn configure(config: &JsValue) {
     CONFIG.lock().unwrap().apply_options(new_config);
 }
 
-// Cluster struct
-// TODO: Optionally return markers? https://serde.rs/field-attrs.html#skip_serializing_if
-#[derive(Debug, Serialize, Clone)]
-pub struct Cluster {
-    uuid: Uuid,
-    size: u32,
-    center: Marker,
-    markers: Vec<UniqueMarker>,
-    bounds: Bounds,
-}
-
-#[wasm_bindgen]
-impl Cluster {
-    fn add_marker(&mut self, new_point: &UniqueMarker, zoom: usize) {
-        if self.markers.contains(new_point) {
-            return;
-        }
-        self.size += 1;
-        self.markers.push(new_point.clone());
-        if CONFIG.lock().unwrap().average_center {
-            self.center.lat = ((self.center.lat * f64::from(self.size)) + new_point.lat) / f64::from(self.size + 1);
-            self.center.lng = ((self.center.lng * f64::from(self.size)) + new_point.lng) / f64::from(self.size + 1);
-            self.calculate_bounds(zoom)
-        }
-    }
-
-    fn calculate_bounds(&mut self, zoom: usize) {
-        self.bounds = calculate_extended_bounds(&Bounds {
-            north: self.center.lat,
-            east: self.center.lng,
-            south: self.center.lat,
-            west: self.center.lng
-        }, zoom);
-    }
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Bounds {
-    pub north: f64,
-    pub east: f64,
-    pub south: f64,
-    pub west: f64,
-}
-
-#[wasm_bindgen]
-impl Bounds {
-    fn contains(&self, point: &UniqueMarker) -> bool {
-        self.north > point.lat &&
-        self.east > point.lng &&
-        self.south < point.lat &&
-        self.west < point.lng
-    }
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Marker {
-    pub lat: f64,
-    pub lng: f64,
-}
-
-#[derive(Clone, Debug, Serialize)]
-pub struct UniqueMarker {
-    lat: f64,
-    lng: f64,
-    #[serde(skip)]
-    uuid: Uuid,
-    #[serde(skip)]
-    is_added: bool,
-}
-
-impl From<&Marker> for UniqueMarker {
-    fn from(point: &Marker) -> Self {
-        UniqueMarker {
-            lat: point.lat,
-            lng: point.lng,
-            uuid: Uuid::new_v4(),
-            is_added: false,
-        }
-    }
-}
-
-impl PartialEq for UniqueMarker {
-    fn eq(&self, other: &UniqueMarker) -> bool {
-        self.uuid == other.uuid
-    }
-}
-
 #[wasm_bindgen(js_name = addMarkers)]
 pub fn add_markers(markers_val: &JsValue) {
     // TODO see if .extend() is faster/better than .append() ?
@@ -152,8 +64,9 @@ pub fn add_markers(markers_val: &JsValue) {
 #[wasm_bindgen(js_name = clusterMarkersInBounds)]
 pub fn cluster_markers_in_bounds(bounds_val: &JsValue, zoom: usize) -> JsValue {
     let log_time = CONFIG.lock().unwrap().log_time;
+    let grid_size = CONFIG.lock().unwrap().grid_size;
 
-    let map_bounds: Bounds = calculate_extended_bounds(&bounds_val.into_serde().unwrap(), zoom);
+    let map_bounds: Bounds = calculate_extended_bounds(&bounds_val.into_serde().unwrap(), zoom, grid_size);
     if log_time {
         console::time_end_with_label("into-wasm");
         console::time_with_label("clustering");
@@ -174,15 +87,17 @@ pub fn cluster_markers_in_bounds(bounds_val: &JsValue, zoom: usize) -> JsValue {
 }
 
 pub fn cluster_markers(existing_clusters: &mut Vec<Cluster>, markers: &mut Vec<UniqueMarker>, map_bounds: &Bounds, zoom: usize) {
+    let average_center = CONFIG.lock().unwrap().average_center;
+    let grid_size = CONFIG.lock().unwrap().grid_size;
     for point in markers.iter_mut() {
         if !point.is_added && map_bounds.contains(point) {
             point.is_added = true;
-            add_to_closest_cluster(existing_clusters, point, zoom);
+            add_to_closest_cluster(existing_clusters, point, zoom, average_center, grid_size);
         }
     }
 }
 
-pub fn add_to_closest_cluster(clusters: &mut Vec<Cluster>, new_point: &UniqueMarker, zoom: usize) {
+pub fn add_to_closest_cluster(clusters: &mut Vec<Cluster>, new_point: &UniqueMarker, zoom: usize, average_center: bool, grid_size: f64) {
     let mut current_distance: f64;
     let mut least_distance = 40000.0; // Some large number
     let mut cluster_index_to_add_to: Option<usize> = None;
@@ -196,7 +111,7 @@ pub fn add_to_closest_cluster(clusters: &mut Vec<Cluster>, new_point: &UniqueMar
 
     if cluster_index_to_add_to.is_some() && clusters[cluster_index_to_add_to.unwrap()].bounds.contains(&new_point) {
         let index = cluster_index_to_add_to.unwrap();
-        clusters[index].add_marker(new_point, zoom);
+        clusters[index].add_marker(new_point, zoom, average_center, grid_size);
     } else {
         clusters.push(Cluster {
             uuid: Uuid::new_v4(),
@@ -206,12 +121,7 @@ pub fn add_to_closest_cluster(clusters: &mut Vec<Cluster>, new_point: &UniqueMar
                 lng: new_point.lng
             },
             markers: vec![new_point.clone()],
-            bounds: calculate_extended_bounds(&Bounds {
-                north: new_point.lat,
-                east: new_point.lng,
-                south: new_point.lat,
-                west: new_point.lng
-            }, zoom)
+            bounds: Bounds::from_point(new_point.lat, new_point.lng, zoom, CONFIG.lock().unwrap().grid_size)
         })
     };
 }
@@ -227,30 +137,6 @@ pub fn distance_between_markers(p1: &Marker, p2: &UniqueMarker) -> f64 {
     let central_angle = 2.0 * central_angle_inner.sqrt().asin();
 
     earth_radius_kilometer * central_angle
-}
-
-pub fn calculate_extended_bounds(bounds: &Bounds, zoom: usize) -> Bounds {
-    let mut north_east_pix = googleprojection::from_ll_to_subpixel(&(bounds.east, bounds.north), zoom).unwrap();
-    let mut south_west_pix = googleprojection::from_ll_to_subpixel(&(bounds.west, bounds.south), zoom).unwrap();
-
-    let grid_size = CONFIG.lock().unwrap().grid_size;
-
-    north_east_pix.0 += grid_size;
-    north_east_pix.1 -= grid_size;
-
-    south_west_pix.0 -= grid_size;
-    south_west_pix.1 += grid_size;
-    
-    // println!("ne0 {}, ne1 {}, sw0 {}, sw1 {}", north_east_pix.0, north_east_pix.1, south_west_pix.0, south_west_pix.1);
-    let north_east_latlng = googleprojection::from_pixel_to_ll(&(north_east_pix.0, north_east_pix.1), zoom).unwrap();
-    let south_west_latlng = googleprojection::from_pixel_to_ll(&(south_west_pix.0, south_west_pix.1), zoom).unwrap();
-
-    Bounds {
-        north: north_east_latlng.1,
-        east: north_east_latlng.0,
-        south: south_west_latlng.1,
-        west: south_west_latlng.0,
-    }
 }
 
 #[cfg(test)]
@@ -282,14 +168,14 @@ mod tests {
         let p1 = UniqueMarker::from(&SAMPLE_POINT);
         let p2 = UniqueMarker::from(&SAMPLE_POINT);
 
-        add_to_closest_cluster(&mut sample_clusters, &p1, DEFAULT_ZOOM);
+        add_to_closest_cluster(&mut sample_clusters, &p1, DEFAULT_ZOOM, false, 60.0);
 
         assert_eq!(sample_clusters.len(), 1);
         assert_eq!(sample_clusters[0].size, 1);
         assert_eq!(sample_clusters[0].center.lat, SAMPLE_POINT.lat);
         assert_eq!(sample_clusters[0].center.lng, SAMPLE_POINT.lng);
 
-        add_to_closest_cluster(&mut sample_clusters, &p2, DEFAULT_ZOOM);
+        add_to_closest_cluster(&mut sample_clusters, &p2, DEFAULT_ZOOM, false, 60.0);
 
         assert_eq!(sample_clusters.len(), 1);
         assert_eq!(sample_clusters[0].size, 2);
@@ -316,7 +202,7 @@ mod tests {
             west: -79.3832,
         };
 
-        let extended_bounds = calculate_extended_bounds(&bounds, DEFAULT_ZOOM);
+        let extended_bounds = calculate_extended_bounds(&bounds, DEFAULT_ZOOM, 60.0);
 
         assert!(bounds.north < extended_bounds.north);
         assert!(bounds.east < extended_bounds.east);

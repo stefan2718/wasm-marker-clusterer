@@ -12,6 +12,9 @@ use criterion::BenchmarkId;
 use criterion::BatchSize;
 
 use webassembly_marker_clusterer::*;
+use structs::bounds::Bounds;
+use structs::marker::Marker;
+use structs::unique_marker::UniqueMarker;
 
 // static DEFAULT_ZOOM: usize = 8;
 static DEFAULT_BOUNDS: Bounds = Bounds {
