@@ -1,5 +1,4 @@
 use uuid::Uuid;
-
 use Marker;
 
 #[derive(Clone, Debug, Serialize)]

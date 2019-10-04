@@ -1,4 +1,4 @@
 #!/bin/bash
 
-wasm-pack build --scope stefan2718
+wasm-pack build --scope stefan2718 $@
 

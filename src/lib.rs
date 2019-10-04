@@ -172,25 +172,25 @@ mod tests {
 
         assert_eq!(sample_clusters.len(), 1);
         assert_eq!(sample_clusters[0].size, 1);
-        assert_eq!(sample_clusters[0].center.lat, SAMPLE_POINT.lat);
-        assert_eq!(sample_clusters[0].center.lng, SAMPLE_POINT.lng);
+        assert!((sample_clusters[0].center.lat - SAMPLE_POINT.lat).abs() < f64::EPSILON);
+        assert!((sample_clusters[0].center.lng - SAMPLE_POINT.lng).abs() < f64::EPSILON);
 
         add_to_closest_cluster(&mut sample_clusters, &p2, DEFAULT_ZOOM, false, 60.0);
 
         assert_eq!(sample_clusters.len(), 1);
         assert_eq!(sample_clusters[0].size, 2);
-        assert_eq!(sample_clusters[0].center.lat, SAMPLE_POINT.lat);
-        assert_eq!(sample_clusters[0].center.lng, SAMPLE_POINT.lng);
+        assert!((sample_clusters[0].center.lat - SAMPLE_POINT.lat).abs() < f64::EPSILON);
+        assert!((sample_clusters[0].center.lng - SAMPLE_POINT.lng).abs() < f64::EPSILON);
     }
 
     #[test]
-    fn test_10000_markers() {
-        let mut sample_markers = vec![ Marker { lat: 43.0, lng: -79.0 }; 10000 ].iter().map(UniqueMarker::from).collect::<Vec<_>>();
+    fn test_1000_markers() {
+        let mut sample_markers = vec![ Marker { lat: 43.0, lng: -79.0 }; 1000 ].iter().map(UniqueMarker::from).collect::<Vec<_>>();
         
         let clustered = &mut Vec::new();
         cluster_markers(clustered, &mut sample_markers, &DEFAULT_BOUNDS, DEFAULT_ZOOM);
         assert_eq!(clustered.len(), 1);
-        assert_eq!(clustered.get(0).unwrap().size, 10000);
+        assert_eq!(clustered.get(0).unwrap().size, 1000);
     }
 
     #[test]
