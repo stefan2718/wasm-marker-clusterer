@@ -13,7 +13,6 @@ crate-type = ["cdylib", "rlib"]
 # default = ["wee_alloc"]
 
 [dependencies]
-# TODO There was something about a different kind of serde that might be faster?
 wasm-bindgen = { version = "0.2.51", features = ["serde-serialize"] }
 serde = "1.0.101"
 serde_derive = "1.0.101"
@@ -37,7 +36,7 @@ csv = "1.1.1"
 
 [profile.release]
 lto = true
-debug = true
+# debug = true
 # Tell `rustc` to optimize for small code size.
 # opt-level = "s"
 
