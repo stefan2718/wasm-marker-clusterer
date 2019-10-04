@@ -1,6 +1,7 @@
 extern crate wasm_bindgen;
 extern crate web_sys;
 extern crate uuid;
+extern crate serde_wasm_bindgen;
 
 #[macro_use]
 extern crate serde_derive;
@@ -49,24 +50,26 @@ pub fn main_js() -> Result<(), JsValue> {
 }
 
 #[wasm_bindgen]
-pub fn configure(config: &JsValue) {
-    let new_config: OptionalConfig = config.into_serde().unwrap();
+pub fn configure(config: JsValue) {
+    // let new_config: OptionalConfig = config.into_serde().unwrap();
+    let new_config: OptionalConfig = serde_wasm_bindgen::from_value(config).unwrap();
     CONFIG.lock().unwrap().apply_options(new_config);
 }
 
 #[wasm_bindgen(js_name = addMarkers)]
-pub fn add_markers(markers_val: &JsValue) {
+pub fn add_markers(markers_val: JsValue) {
+    // let markers: &mut Vec<Marker> = &mut markers_val.into_serde().unwrap();
+    let markers: &mut Vec<Marker> = &mut serde_wasm_bindgen::from_value(markers_val).unwrap();
     // TODO see if .extend() is faster/better than .append() ?
-    let markers: &mut Vec<Marker> = &mut markers_val.into_serde().unwrap();
     ALL_POINTS.lock().unwrap().append(&mut markers.iter().map(UniqueMarker::from).collect::<Vec<_>>());
 }
 
 #[wasm_bindgen(js_name = clusterMarkersInBounds)]
-pub fn cluster_markers_in_bounds(bounds_val: &JsValue, zoom: usize) -> JsValue {
+pub fn cluster_markers_in_bounds(bounds_val: JsValue, zoom: usize) -> JsValue {
     let log_time = CONFIG.lock().unwrap().log_time;
     let grid_size = CONFIG.lock().unwrap().grid_size;
 
-    let map_bounds: Bounds = calculate_extended_bounds(&bounds_val.into_serde().unwrap(), zoom, grid_size);
+    let map_bounds: Bounds = calculate_extended_bounds(&serde_wasm_bindgen::from_value(bounds_val).unwrap(), zoom, grid_size);
     if log_time {
         console::time_end_with_label("into-wasm");
         console::time_with_label("clustering");
@@ -83,7 +86,7 @@ pub fn cluster_markers_in_bounds(bounds_val: &JsValue, zoom: usize) -> JsValue {
         console::time_end_with_label("clustering");
         console::time_with_label("out-of-wasm");
     }
-    JsValue::from_serde(&clusters.to_vec()).unwrap()
+    serde_wasm_bindgen::to_value(&clusters.to_vec()).unwrap()
 }
 
 pub fn cluster_markers(existing_clusters: &mut Vec<Cluster>, markers: &mut Vec<UniqueMarker>, map_bounds: &Bounds, zoom: usize) {
