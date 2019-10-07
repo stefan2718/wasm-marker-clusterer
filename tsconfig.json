@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "outDir": "./dist/",
+    "lib": [ "dom", "es2015" ],
+    "sourceMap": true,
+    "strict": true,
+    "noImplicitReturns": true,
+    "noImplicitAny": true,
+    "module": "esNext",
+    "moduleResolution": "node",
+    "target": "es5",
+    "allowJs": false
+  },
+  "include": [
+    "./js/**/*"
+  ]
+}
