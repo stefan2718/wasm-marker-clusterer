@@ -5,15 +5,10 @@ extern crate webassembly_marker_clusterer;
 use std::fs::File;
 use std::io::BufReader;
 
-use criterion::Criterion;
-use criterion::black_box;
-use criterion::BenchmarkId;
-use criterion::BatchSize;
+use criterion::{ Criterion, black_box, Throughput, BenchmarkId, BatchSize };
 
 use webassembly_marker_clusterer::*;
-use structs::bounds::Bounds;
-use structs::marker::Marker;
-use structs::unique_marker::UniqueMarker;
+use structs::{ bounds::Bounds, marker::Marker, unique_marker::UniqueMarker };
 use config::Config;
 
 static DEFAULT_BOUNDS: Bounds = Bounds {
@@ -31,6 +26,8 @@ fn criterion_benchmark(c: &mut Criterion) {
              .collect::<Vec<_>>();
   
   let mut group = c.benchmark_group("cluster 10000 real");
+  group.throughput(Throughput::Elements(sample_markers.len() as u64));
+
   for zoom in 7..12 {
     group.bench_with_input(BenchmarkId::from_parameter(zoom), &zoom, |b, &zoom_cur| b.iter_batched_ref(
       || sample_markers.to_vec(),
@@ -38,6 +35,7 @@ fn criterion_benchmark(c: &mut Criterion) {
       BatchSize::SmallInput
     ));
   }
+  group.finish();
 }
 
 criterion_group!{
