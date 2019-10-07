@@ -31,7 +31,9 @@ module.exports = {
   plugins: [
     new WasmPackPlugin({
       crateDirectory: __dirname,
-      extraArgs: "--out-name index"
+      forceMode: "production",
+      // outName: "index",
+      extraArgs: "--out-name index --target bundler"
     }),
   ]
 };

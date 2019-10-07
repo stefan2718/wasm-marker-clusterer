@@ -4,6 +4,10 @@
   "description": "A WebAssembly alternative to the popular MarkerClustererPlus library for Google Maps",
   "version": "1.0.0",
   "license": "GPL-3.0-only",
+  "keywords": [ "wasm", "webassembly", "google maps", "marker-clusterer-plus", "clustering" ],
+  "files": ["dist/*"],
+  "browser": "dist/index.js",
+  "sideEffects": "false",
   "repository": {
     "type": "git",
     "url": "https://github.com/stefan2718/webassembly-marker-clusterer"

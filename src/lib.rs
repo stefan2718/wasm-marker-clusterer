@@ -88,6 +88,12 @@ pub fn cluster_markers_in_bounds(bounds_val: JsValue, zoom: usize) -> JsValue {
     serde_wasm_bindgen::to_value(&vec).unwrap()
 }
 
+#[wasm_bindgen]
+pub fn clear() {
+    ALL_POINTS.lock().unwrap().clear();
+    CLUSTERS.lock().unwrap().clear();
+}
+
 pub fn cluster_markers(existing_clusters: &mut Vec<Cluster>, markers: &mut Vec<UniqueMarker>, map_bounds: &Bounds, zoom: usize, config: &Config) -> HashSet<Uuid> {
     let mut clusters_modified = HashSet::new();
     for point in markers.iter_mut() {
