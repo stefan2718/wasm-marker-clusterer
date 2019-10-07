@@ -11,20 +11,17 @@ extern crate lazy_static;
 extern crate optional_struct;
 
 pub mod structs;
-use structs::cluster::Cluster;
-use structs::marker::Marker;
-use structs::bounds::Bounds;
-use structs::unique_marker::UniqueMarker;
+use structs::{ bounds::Bounds, cluster::Cluster, marker::Marker, unique_marker::UniqueMarker };
 
-mod config;
-use config::Config;
-use config::OptionalConfig;
+pub mod config;
+use config::{ Config, OptionalConfig };
 
 mod utils;
 use utils::calculate_extended_bounds;
 
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::collections::HashSet;
 use uuid::Uuid;
 use wasm_bindgen::prelude::*;
 use web_sys::console;
@@ -34,11 +31,7 @@ lazy_static! {
     static ref ALL_POINTS: Mutex<Vec<UniqueMarker>> = Mutex::new(Vec::new());
     static ref CLUSTERS: Mutex<Vec<Cluster>> = Mutex::new(Vec::new());
     static ref ZOOM: AtomicUsize = AtomicUsize::new(0);
-    static ref CONFIG: Mutex<Config> = Mutex::new(Config {
-        grid_size: 60.0,
-        average_center: false,
-        log_time: false,
-    });
+    static ref CONFIG: Mutex<Config> = Mutex::new(Config::default());
 }
 
 #[wasm_bindgen(start)]
@@ -51,14 +44,12 @@ pub fn main_js() -> Result<(), JsValue> {
 
 #[wasm_bindgen]
 pub fn configure(config: JsValue) {
-    // let new_config: OptionalConfig = config.into_serde().unwrap();
     let new_config: OptionalConfig = serde_wasm_bindgen::from_value(config).unwrap();
     CONFIG.lock().unwrap().apply_options(new_config);
 }
 
 #[wasm_bindgen(js_name = addMarkers)]
 pub fn add_markers(markers_val: JsValue) {
-    // let markers: &mut Vec<Marker> = &mut markers_val.into_serde().unwrap();
     let markers: &mut Vec<Marker> = &mut serde_wasm_bindgen::from_value(markers_val).unwrap();
     // TODO see if .extend() is faster/better than .append() ?
     ALL_POINTS.lock().unwrap().append(&mut markers.iter().map(UniqueMarker::from).collect::<Vec<_>>());
@@ -66,11 +57,10 @@ pub fn add_markers(markers_val: JsValue) {
 
 #[wasm_bindgen(js_name = clusterMarkersInBounds)]
 pub fn cluster_markers_in_bounds(bounds_val: JsValue, zoom: usize) -> JsValue {
-    let log_time = CONFIG.lock().unwrap().log_time;
-    let grid_size = CONFIG.lock().unwrap().grid_size;
+    let config = CONFIG.lock().unwrap();
 
-    let map_bounds: Bounds = calculate_extended_bounds(&serde_wasm_bindgen::from_value(bounds_val).unwrap(), zoom, grid_size);
-    if log_time {
+    let map_bounds: Bounds = calculate_extended_bounds(&serde_wasm_bindgen::from_value(bounds_val).unwrap(), zoom, config.grid_size);
+    if config.log_time {
         console::time_end_with_label("into-wasm");
         console::time_with_label("clustering");
     }
@@ -81,26 +71,38 @@ pub fn cluster_markers_in_bounds(bounds_val: JsValue, zoom: usize) -> JsValue {
             marker.is_added = false;
         }
     }
-    cluster_markers(clusters, &mut ALL_POINTS.lock().unwrap(), &map_bounds, zoom);
-    if log_time {
+    let uuids_modified = cluster_markers(clusters, &mut ALL_POINTS.lock().unwrap(), &map_bounds, zoom, &config);
+    if config.log_time {
         console::time_end_with_label("clustering");
         console::time_with_label("out-of-wasm");
     }
-    serde_wasm_bindgen::to_value(&clusters.to_vec()).unwrap()
+
+    let vec = if !config.only_return_modified_clusters {
+        clusters.to_vec()
+    } else {
+        clusters.iter()
+                .filter(|c| uuids_modified.contains(&c.uuid))
+                .cloned()
+                .collect::<Vec<_>>()
+    };
+    serde_wasm_bindgen::to_value(&vec).unwrap()
 }
 
-pub fn cluster_markers(existing_clusters: &mut Vec<Cluster>, markers: &mut Vec<UniqueMarker>, map_bounds: &Bounds, zoom: usize) {
-    let average_center = CONFIG.lock().unwrap().average_center;
-    let grid_size = CONFIG.lock().unwrap().grid_size;
+pub fn cluster_markers(existing_clusters: &mut Vec<Cluster>, markers: &mut Vec<UniqueMarker>, map_bounds: &Bounds, zoom: usize, config: &Config) -> HashSet<Uuid> {
+    let mut clusters_modified = HashSet::new();
     for point in markers.iter_mut() {
         if !point.is_added && map_bounds.contains(point) {
             point.is_added = true;
-            add_to_closest_cluster(existing_clusters, point, zoom, average_center, grid_size);
+            let closest_cluster = add_to_closest_cluster(existing_clusters, point, zoom, config.average_center, config.grid_size);
+            if config.only_return_modified_clusters {
+                clusters_modified.insert(closest_cluster);
+            }
         }
     }
+    clusters_modified
 }
 
-pub fn add_to_closest_cluster(clusters: &mut Vec<Cluster>, new_point: &UniqueMarker, zoom: usize, average_center: bool, grid_size: f64) {
+pub fn add_to_closest_cluster(clusters: &mut Vec<Cluster>, new_point: &UniqueMarker, zoom: usize, average_center: bool, grid_size: f64) -> Uuid {
     let mut current_distance: f64;
     let mut least_distance = 40000.0; // Some large number
     let mut cluster_index_to_add_to: Option<usize> = None;
@@ -115,18 +117,21 @@ pub fn add_to_closest_cluster(clusters: &mut Vec<Cluster>, new_point: &UniqueMar
     if cluster_index_to_add_to.is_some() && clusters[cluster_index_to_add_to.unwrap()].bounds.contains(&new_point) {
         let index = cluster_index_to_add_to.unwrap();
         clusters[index].add_marker(new_point, zoom, average_center, grid_size);
+        clusters[index].uuid
     } else {
+        let uuid = Uuid::new_v4();
         clusters.push(Cluster {
-            uuid: Uuid::new_v4(),
+            uuid,
             size: 1,
             center: Marker{
                 lat: new_point.lat,
                 lng: new_point.lng
             },
             markers: vec![new_point.clone()],
-            bounds: Bounds::from_point(new_point.lat, new_point.lng, zoom, CONFIG.lock().unwrap().grid_size)
-        })
-    };
+            bounds: Bounds::from_point(new_point.lat, new_point.lng, zoom, grid_size)
+        });
+        uuid
+    }
 }
 
 pub fn distance_between_markers(p1: &Marker, p2: &UniqueMarker) -> f64 {
@@ -160,7 +165,7 @@ mod tests {
         let mut sample_markers = vec![ Marker { lat: 43.0, lng: -79.0 }; 5 ].iter().map(UniqueMarker::from).collect::<Vec<_>>();
 
         let clustered = &mut Vec::new();
-        cluster_markers(clustered, &mut sample_markers, &DEFAULT_BOUNDS, DEFAULT_ZOOM);
+        cluster_markers(clustered, &mut sample_markers, &DEFAULT_BOUNDS, DEFAULT_ZOOM, &Config::default());
         let cluster_point_count = clustered.iter().fold(0, |sum, ref x| sum + x.size );
         assert_eq!(sample_markers.len() as u32, cluster_point_count);
     }
@@ -191,7 +196,7 @@ mod tests {
         let mut sample_markers = vec![ Marker { lat: 43.0, lng: -79.0 }; 1000 ].iter().map(UniqueMarker::from).collect::<Vec<_>>();
         
         let clustered = &mut Vec::new();
-        cluster_markers(clustered, &mut sample_markers, &DEFAULT_BOUNDS, DEFAULT_ZOOM);
+        cluster_markers(clustered, &mut sample_markers, &DEFAULT_BOUNDS, DEFAULT_ZOOM, &Config::default());
         assert_eq!(clustered.len(), 1);
         assert_eq!(clustered.get(0).unwrap().size, 1000);
     }

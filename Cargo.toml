@@ -1,6 +1,6 @@
 [package]
 name = "webassembly-marker-clusterer"
-version = "0.0.8"
+version = "0.0.9"
 authors = ["Stefan Battiston <stefan.battiston@gmail.com>"]
 description = "A WebAssembly alternative to the popular MarkerClustererPlus library for Google Maps"
 license = "GPL-3.0-only"
@@ -37,7 +37,10 @@ csv = "1.1.1"
 
 [profile.release]
 lto = true
-# debug = true
+# Uncomment to use console_error_panic_hook
+# debug-assertions = true
+codegen-units = 1
+panic = 'abort'
 # Tell `rustc` to optimize for small code size.
 # opt-level = "s"
 

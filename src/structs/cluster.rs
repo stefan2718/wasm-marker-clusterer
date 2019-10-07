@@ -3,8 +3,6 @@ use Marker;
 use UniqueMarker;
 use Bounds;
 
-// Cluster struct
-// TODO: Optionally return markers? https://serde.rs/field-attrs.html#skip_serializing_if
 #[derive(Debug, Serialize, Clone)]
 pub struct Cluster {
     pub uuid: Uuid,

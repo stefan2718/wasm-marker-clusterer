@@ -8,15 +8,14 @@ use std::io::BufReader;
 use criterion::Criterion;
 use criterion::black_box;
 use criterion::BenchmarkId;
-// use criterion::Throughput;
 use criterion::BatchSize;
 
 use webassembly_marker_clusterer::*;
 use structs::bounds::Bounds;
 use structs::marker::Marker;
 use structs::unique_marker::UniqueMarker;
+use config::Config;
 
-// static DEFAULT_ZOOM: usize = 8;
 static DEFAULT_BOUNDS: Bounds = Bounds {
     north: 45.0,
     east: -75.0,
@@ -24,8 +23,8 @@ static DEFAULT_BOUNDS: Bounds = Bounds {
     west: -81.0,
 };
 
-
 fn criterion_benchmark(c: &mut Criterion) {
+  let config = Config::default();
   let mut rdr = csv::Reader::from_reader(BufReader::new(File::open("benches/points.csv").unwrap()));
   let sample_markers = rdr.deserialize::<Marker>()
              .map(|row| UniqueMarker::from(&row.unwrap()))
@@ -35,7 +34,7 @@ fn criterion_benchmark(c: &mut Criterion) {
   for zoom in 7..12 {
     group.bench_with_input(BenchmarkId::from_parameter(zoom), &zoom, |b, &zoom_cur| b.iter_batched_ref(
       || sample_markers.to_vec(),
-      |mut markers| cluster_markers(black_box(&mut Vec::new()), black_box(&mut markers), black_box(&DEFAULT_BOUNDS), zoom_cur),
+      |mut markers| cluster_markers(black_box(&mut Vec::new()), black_box(&mut markers), black_box(&DEFAULT_BOUNDS), zoom_cur, black_box(&config)),
       BatchSize::SmallInput
     ));
   }
