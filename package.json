@@ -1,0 +1,37 @@
+{
+  "name": "wasm-marker-clusterer",
+  "author": "Stefan Battiston <stefan.battiston@gmail.com>",
+  "description": "A WebAssembly alternative to the popular MarkerClustererPlus library for Google Maps",
+  "version": "0.1.1",
+  "license": "GPL-3.0-only",
+  "keywords": [
+    "wasm",
+    "webassembly",
+    "google maps",
+    "marker-clusterer-plus",
+    "clustering"
+  ],
+  "files": [
+    "dist/index*",
+    "dist/interfaces.d.ts",
+    "pkg/webassembly_marker_clusterer.js",
+    "pkg/webassembly_marker_clusterer_bg.wasm"
+  ],
+  "types": "dist/index.d.ts",
+  "main": "dist/index.js",
+  "sideEffects": "false",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/stefan2718/webassembly-marker-clusterer"
+  },
+  "scripts": {
+    "build": "tsc && wasm-pack build",
+    "prepare": "npm run build && rimraf pkg/{[^w]*,.gitignore}",
+    "test": "cargo test && wasm-pack test --headless"
+  },
+  "devDependencies": {
+    "@types/node": "^12.7.12",
+    "rimraf": "^2.6.3",
+    "typescript": "^3.6.3"
+  }
+}
