@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>My Rust + Webpack project!</title>
+  </head>
+  <body>
+    <script src="index.js"></script>
+    <script type="text/javascript">
+    var wasm = new WasmMarkerClusterer({});
+    wasm.init().then(() => {
+      wasm.addMarkers([{lat: 1, lng: 2}]);
+      console.log(wasm.clusterMarkersInBounds({north: 3, south: 0, east:3, west: 0}, 8));
+    })
+    </script>
+  </body>
+</html>

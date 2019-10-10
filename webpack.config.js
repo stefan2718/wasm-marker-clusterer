@@ -1,34 +1,28 @@
 const path = require("path");
 const WasmPackPlugin = require("@wasm-tool/wasm-pack-plugin");
+const CopyPlugin = require("copy-webpack-plugin");
 
 const dist = path.resolve(__dirname, "dist");
 
 module.exports = {
-  mode: "production",
+  mode: "development",
   entry: {
-    index: "./js/index.ts"
+    index: "./js/index.js"
   },
   output: {
     path: dist,
-    filename: "[name].js"
+    filename: "[name].js",
+    library: "WasmMarkerClusterer",
+    libraryTarget: 'umd',
+    globalObject: 'this',
   },
-  module: {
-    rules: [
-      {
-        test: /\.(ts|tsx)?$/,
-        loader: 'ts-loader',
-        exclude: /node_modules/
-      }
-    ]
-  },
-  resolve: {
-    extensions: [
-      '.tsx',
-      '.ts',
-      '.js'
-    ]
+  devServer: {
+    contentBase: dist,
   },
   plugins: [
+    new CopyPlugin([
+      "index.html"
+    ]),
     new WasmPackPlugin({
       crateDirectory: __dirname,
       forceMode: "production",
