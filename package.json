@@ -12,27 +12,23 @@
     "clustering"
   ],
   "files": [
-    "dist/"
+    "js/index.js",
+    "pkg/webassembly_marker_clusterer.js",
+    "pkg/webassembly_marker_clusterer.wasm"
   ],
-  "main": "dist/index.js",
+  "main": "js/index.js",
   "sideEffects": "false",
   "repository": {
     "type": "git",
     "url": "https://github.com/stefan2718/webassembly-marker-clusterer"
   },
   "scripts": {
-    "build": "rimraf dist pkg && webpack",
+    "build": "wasm-pack build",
     "start": "rimraf dist pkg && webpack-dev-server -d",
     "test": "cargo test && wasm-pack test --headless"
   },
   "devDependencies": {
-    "@wasm-tool/wasm-pack-plugin": "^0.4.2",
-    "copy-webpack-plugin": "^5.0.4",
     "rimraf": "^2.6.3",
-    "ts-loader": "^6.2.0",
-    "typescript": "^3.6.3",
-    "webpack": "^4.33.0",
-    "webpack-cli": "^3.3.3",
-    "webpack-dev-server": "^3.8.2"
+    "typescript": "^3.6.3"
   }
 }

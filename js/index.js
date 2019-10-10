@@ -1,4 +1,4 @@
-import * as clusterer from "../pkg/index";
+import * as clusterer from "../pkg/webassembly_marker_clusterer.js";
 
 const camelToSnake = (str) => str.replace(
   /([A-Z]?[a-z]+)/g,
@@ -16,31 +16,37 @@ const mapConfigNames = (config) => {
   });
   return wasmConfig;
 }
-function WasmMarkerClusterer(config) {
-  this.config = config;
-  this.previousZoom = -1;
-  this.previousClusters = [];
-  clusterer.configure(mapConfigNames(this.config));
-}
 
-WasmMarkerClusterer.prototype.addMarkers = function(markers) {
-  clusterer.addMarkers(markers);
-}
+export class WasmMarkerClusterer {
+  constructor(config) {
+    this.config = config;
+    this.previousZoom = -1;
+    this.previousClusters = [];
+    clusterer.configure(mapConfigNames(this.config));
+  }
 
-WasmMarkerClusterer.prototype.clusterMarkersInBounds = function (bounds, zoom) {
-  let zoomChanged = zoom !== this.previousZoom;
-  if (this.config.logTime) console.time("into-wasm");
-  let wasmClusters = clusterer.clusterMarkersInBounds(bounds, zoom);
-  if (this.config.logTime) console.timeEnd("out-of-wasm");
-  this.previousClusters = !this.config.onlyReturnModifiedClusters || zoomChanged 
-      ? wasmClusters 
+  addMarkers(markers) {
+    clusterer.addMarkers(markers);
+  }
+
+  clusterMarkersInBounds(bounds, zoom) {
+    let zoomChanged = zoom !== this.previousZoom;
+    this.previousZoom = zoom;
+
+    if (this.config.logTime)console.time("into-wasm");
+    let wasmClusters = clusterer.clusterMarkersInBounds(bounds, zoom);
+    if (this.config.logTime) console.timeEnd("out-of-wasm");
+
+    this.previousClusters = !this.config.onlyReturnModifiedClusters || zoomChanged
+      ? wasmClusters
       : mergeModifiedClusters(this.previousClusters, wasmClusters);
-  return this.previousClusters;
-}
+    return this.previousClusters;
+  }
 
-WasmMarkerClusterer.prototype.clear = function () { 
-  clusterer.clear();
-};
+  clear() {
+    clusterer.clear();
+  }
+}
 
 const mergeModifiedClusters = (prevClusters, modifiedClusters) => {
   modifiedClusters.forEach(modifiedCluster => {
@@ -53,15 +59,3 @@ const mergeModifiedClusters = (prevClusters, modifiedClusters) => {
   });
   return prevClusters;
 }
-
-// if (typeof module == 'object') {
-  module.exports = WasmMarkerClusterer;
-// }
-// if(typeof exports === 'object' && typeof module === 'object')
-// 		module.exports = factory();
-// 	else if(typeof define === 'function' && define.amd)
-// 		define([], factory);
-// 	else if(typeof exports === 'object')
-// 		exports["WasmMarkerClusterer"] = factory();
-// 	else
-// 		root["WasmMarkerClusterer"] = factory();
