@@ -11,7 +11,7 @@
     "module": "esNext",
     "moduleResolution": "node",
     "target": "es5",
-    // "esModuleInterop": true,
+    "esModuleInterop": true,
     "allowJs": false
   },
   "include": [
