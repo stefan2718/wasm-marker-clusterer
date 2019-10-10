@@ -36,7 +36,9 @@ export class WasmMarkerClusterer {
   private previousClusters: ICluster[] = [];
 
   constructor(config?: IConfig) {
-    this.config = config;
+    this.config = Object.assign({
+      onlyReturnModifiedClusters: true
+    }, config);
     clusterer.configure(mapConfigNames(this.config));
   }
 
