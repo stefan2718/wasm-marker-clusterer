@@ -50,3 +50,7 @@ lto = true
 [[bench]]
 name = "clustering"
 harness = false
+
+# [[bench]]
+# name = "serializing"
+# harness = false

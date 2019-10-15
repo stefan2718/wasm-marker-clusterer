@@ -2,45 +2,33 @@
 extern crate criterion;
 extern crate webassembly_marker_clusterer;
 
-use std::fs::File;
-use std::io::BufReader;
-
 use criterion::{ Criterion, black_box, Throughput, BenchmarkId, BatchSize };
 
 use webassembly_marker_clusterer::*;
-use structs::{ bounds::Bounds, marker::Marker, unique_marker::UniqueMarker };
 use config::Config;
 
-static DEFAULT_BOUNDS: Bounds = Bounds {
-    north: 45.0,
-    east: -75.0,
-    south: 40.0,
-    west: -81.0,
-};
+mod utils;
+use utils::markers::{DEFAULT_BOUNDS, get_unique_sample_markers};
 
-fn criterion_benchmark(c: &mut Criterion) {
+fn clustering_benchmark(c: &mut Criterion) {
+  let mut clustering = c.benchmark_group("cluster-10000");
+  let sample_markers = get_unique_sample_markers();
   let config = Config::default();
-  let mut rdr = csv::Reader::from_reader(BufReader::new(File::open("benches/points.csv").unwrap()));
-  let sample_markers = rdr.deserialize::<Marker>()
-             .map(|row| UniqueMarker::from(&row.unwrap()))
-             .collect::<Vec<_>>();
-  
-  let mut group = c.benchmark_group("cluster 10000 real");
-  group.throughput(Throughput::Elements(sample_markers.len() as u64));
 
-  for zoom in 7..12 {
-    group.bench_with_input(BenchmarkId::from_parameter(zoom), &zoom, |b, &zoom_cur| b.iter_batched_ref(
+  for (zoom, clusters) in &[(7,1), (8,6), (9,16), (10,51), (11,162)] {
+    clustering.throughput(Throughput::Elements((sample_markers.len() / clusters) as u64));
+    clustering.bench_with_input(BenchmarkId::from_parameter(zoom), &zoom, |b, &zoom_cur| b.iter_batched_ref(
       || sample_markers.to_vec(),
-      |mut markers| cluster_markers(black_box(&mut Vec::new()), black_box(&mut markers), black_box(&DEFAULT_BOUNDS), zoom_cur, black_box(&config)),
+      |mut markers| cluster_markers(black_box(&mut Vec::new()), black_box(&mut markers), &DEFAULT_BOUNDS, *zoom_cur, black_box(&config)),
       BatchSize::SmallInput
     ));
   }
-  group.finish();
+  clustering.finish();
 }
 
 criterion_group!{
-  name = benches;
+  name = clustering;
   config = Criterion::default().sample_size(10);
-  targets = criterion_benchmark
+  targets = clustering_benchmark 
 }
-criterion_main!(benches);
+criterion_main!(clustering);
