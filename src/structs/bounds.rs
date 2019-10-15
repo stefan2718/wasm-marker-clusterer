@@ -1,5 +1,5 @@
 use UniqueMarker;
-use utils::calculate_extended_bounds;
+use utils::bounds::calculate_extended_bounds;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Bounds {

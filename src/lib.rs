@@ -17,7 +17,7 @@ pub mod config;
 use config::{ Config, OptionalConfig };
 
 mod utils;
-use utils::calculate_extended_bounds;
+use utils::bounds::calculate_extended_bounds;
 
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicUsize, Ordering};
