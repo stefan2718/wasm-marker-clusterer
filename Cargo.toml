@@ -31,7 +31,7 @@ optional_struct = "0.2.0"
 console_error_panic_hook = "0.1.6"
 
 [dev-dependencies]
-# wasm-bindgen-test = "0.2"
+wasm-bindgen-test = "0.2.50"
 criterion = "0.3"
 csv = "1.1.1"
 
