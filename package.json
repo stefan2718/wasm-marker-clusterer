@@ -27,7 +27,7 @@
   "scripts": {
     "build": "tsc && wasm-pack build",
     "prepare": "npm run build && rimraf pkg/{[^w]*,.gitignore}",
-    "test": "cargo test && wasm-pack test --headless firefox"
+    "test": "cargo test && wasm-pack test"
   },
   "devDependencies": {
     "@types/node": "^12.7.12",

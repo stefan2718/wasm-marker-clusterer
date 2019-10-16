@@ -1,14 +1,14 @@
 #[macro_use]
 extern crate criterion;
 extern crate webassembly_marker_clusterer;
+extern crate utilities;
 
 use criterion::{ Criterion, black_box, Throughput, BenchmarkId, BatchSize };
 
 use webassembly_marker_clusterer::*;
 use config::Config;
 
-mod utils;
-use utils::markers::{DEFAULT_BOUNDS, get_unique_sample_markers};
+use utilities::{DEFAULT_BOUNDS, get_unique_sample_markers};
 
 fn clustering_benchmark(c: &mut Criterion) {
   let mut clustering = c.benchmark_group("cluster-10000");

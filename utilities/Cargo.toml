@@ -1,0 +1,19 @@
+[package]
+name = "utilities"
+version = "0.0.1"
+authors = ["Stefan Battiston <stefan.battiston@gmail.com>"]
+
+[lib]
+crate-type = ["rlib"]
+
+[dependencies]
+webassembly-marker-clusterer = { path = "../" }
+
+[profile.release]
+lto = true
+# Uncomment to use console_error_panic_hook
+# debug-assertions = true
+codegen-units = 1
+panic = 'abort'
+# Tell `rustc` to optimize for small code size.
+# opt-level = "s"

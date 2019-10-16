@@ -1,9 +1,9 @@
 extern crate webassembly_marker_clusterer;
 
-use std::fs::File;
-use std::io::BufReader;
+pub mod data;
+use data::MARKERS;
 
-use structs::{ bounds::Bounds, marker::Marker, unique_marker::UniqueMarker };
+use webassembly_marker_clusterer::structs::{ bounds::Bounds, marker::Marker, unique_marker::UniqueMarker };
 
 pub static DEFAULT_BOUNDS: Bounds = Bounds {
     north: 45.0,
@@ -13,10 +13,7 @@ pub static DEFAULT_BOUNDS: Bounds = Bounds {
 };
 
 pub fn get_sample_markers() -> Vec<Marker> {
-  let mut rdr = csv::Reader::from_reader(BufReader::new(File::open("benches/points.csv").unwrap()));
-  rdr.deserialize::<Marker>()
-    .map(|row| row.unwrap())
-    .collect::<Vec<_>>()
+  MARKERS.to_vec()
 }
 
 pub fn get_unique_sample_markers() -> Vec<UniqueMarker> {
