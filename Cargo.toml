@@ -34,6 +34,9 @@ console_error_panic_hook = "0.1.6"
 wasm-bindgen-test = "0.2.50"
 criterion = "0.3"
 utilities = { path = "utilities" }
+# microbench = "0.5.0" #Time system call is not implemented by WebAssembly host
+# easybench = "0.1.4" #Time system call is not implemented by WebAssembly host
+# benchmarking = "0.4.6" #Time system call is not implemented by WebAssembly host
 
 [profile.release]
 lto = true
