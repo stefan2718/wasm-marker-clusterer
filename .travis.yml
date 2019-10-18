@@ -11,7 +11,7 @@ cache: cargo
 before_install:
   - curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh 
 script:
-  - cargo build --verbose
-  - cargo test --verbose
+  - cargo build
+  - cargo test
   - cargo bench
   - wasm-pack test --headless --chrome --release
