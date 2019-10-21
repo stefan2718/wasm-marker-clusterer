@@ -61,5 +61,5 @@ export class WasmMarkerClusterer {
   }
 
   clear = () => clusterer.clear();
-
 }
+export * from "./interfaces";

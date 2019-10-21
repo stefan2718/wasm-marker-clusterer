@@ -1,4 +1,4 @@
-# webassembly-marker-clusterer
+# wasm-marker-clusterer
 A WebAssembly alternative to the popular MarkerClustererPlus library for Google Maps, compiled from Rust.
 
 [![Build Status](https://travis-ci.org/stefan2718/webassembly-marker-clusterer.svg?branch=master)](https://travis-ci.org/stefan2718/webassembly-marker-clusterer)
