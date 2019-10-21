@@ -9,7 +9,7 @@ jobs:
   fast_finish: true
 cache: cargo
 before_install:
-  - curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh 
+  - wasm-pack --version || curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 script:
   - cargo build
   - cargo test
