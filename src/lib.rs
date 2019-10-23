@@ -67,9 +67,7 @@ pub fn cluster_markers_in_bounds(bounds_val: JsValue, zoom: usize) -> JsValue {
     let clusters = &mut CLUSTERS.lock().unwrap();
     if ZOOM.swap(zoom, Ordering::Relaxed) != zoom {
         clusters.clear();
-        for marker in ALL_POINTS.lock().unwrap().iter_mut() {
-            marker.is_added = false;
-        }
+        uncluster_markers();
     }
     let uuids_modified = cluster_markers(clusters, &mut ALL_POINTS.lock().unwrap(), &map_bounds, zoom, &config);
     if config.log_time {
@@ -92,6 +90,18 @@ pub fn cluster_markers_in_bounds(bounds_val: JsValue, zoom: usize) -> JsValue {
 pub fn clear() {
     ALL_POINTS.lock().unwrap().clear();
     CLUSTERS.lock().unwrap().clear();
+}
+
+#[wasm_bindgen(js_name = clearClusters)]
+pub fn clear_clusters() {
+    CLUSTERS.lock().unwrap().clear();
+    uncluster_markers();
+}
+
+fn uncluster_markers() {
+    for marker in ALL_POINTS.lock().unwrap().iter_mut() {
+        marker.is_added = false;
+    }
 }
 
 pub fn cluster_markers(existing_clusters: &mut Vec<Cluster>, markers: &mut Vec<UniqueMarker>, map_bounds: &Bounds, zoom: usize, config: &Config) -> HashSet<Uuid> {

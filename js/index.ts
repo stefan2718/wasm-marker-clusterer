@@ -1,5 +1,6 @@
 import * as clusterer from "../pkg/webassembly_marker_clusterer.js";
 import { IConfig, IMarker, IBounds, ICluster } from "./interfaces";
+export * from "./interfaces";
 
 const camelToSnake = (str: string): string => str.replace(
   /([A-Z]?[a-z]+)/g,
@@ -31,21 +32,35 @@ const mergeModifiedClusters = (prevClusters: ICluster[], modifiedClusters: IClus
 }
 
 export class WasmMarkerClusterer {
-  private config?: IConfig;
+  private config?: IConfig = { onlyReturnModifiedClusters: true };
   private previousZoom = -1;
   private previousClusters: ICluster[] = [];
 
+  /**
+   * @param config {IConfig} Uses default config if none passed.
+   */
   constructor(config?: IConfig) {
-    this.config = Object.assign({
-      onlyReturnModifiedClusters: true
-    }, config);
+    this.configure(config);
+  }
+  
+  /**
+   * Merges any passed config parameters into existing config. 
+   * 
+   * Clears cached clusters if `averageCenter` or `gridSize` is modified.
+   */
+  configure = (config: IConfig) => {
+    if (this.config.averageCenter != config.averageCenter || this.config.gridSize !== config.gridSize) {
+      this.clearClusters();
+    }
+    this.config = Object.assign(this.config, config);
     clusterer.configure(mapConfigNames(this.config));
   }
 
-  addMarkers = (markers: IMarker[]) => {
-    clusterer.addMarkers(markers);
-  }
-
+  /**
+   * Calculates clusters for the markers within the given bounds.
+   * 
+   * @returns Newly calculated clusters merged with any previously calculated clusters
+   */
   clusterMarkersInBounds = (bounds: IBounds, zoom: number): ICluster[] => {
     let zoomChanged = zoom !== this.previousZoom;
     this.previousZoom = zoom;
@@ -60,6 +75,22 @@ export class WasmMarkerClusterer {
     return this.previousClusters;
   }
 
-  clear = () => clusterer.clear();
+  /**
+   * Add an array of lat/lng markers so that they can be clustered.
+   */
+  addMarkers = (markers: IMarker[]) => clusterer.addMarkers(markers);
+  /**
+   * Clears all added markers and calculated clusters.
+   */
+  clear = () => {
+    this.previousClusters = [];
+    clusterer.clear();
+  }
+  /**
+   * Clears only calculated clusters.
+   */
+  clearClusters = () => {
+    this.previousClusters = [];
+    clusterer.clearClusters();
+  }
 }
-export * from "./interfaces";
