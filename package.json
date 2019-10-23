@@ -26,7 +26,7 @@
   },
   "scripts": {
     "build": "tsc && wasm-pack build",
-    "prepare": "npm run build && rimraf pkg/{[^w]*,.gitignore}",
+    "prepare": "npm run build && rimraf pkg/{[^w]*,.gitignore} && wasm-opt -O4 pkg/webassembly_marker_clusterer_bg.wasm -o pkg/webassembly_marker_clusterer_bg.wasm",
     "test": "cargo test && wasm-pack test --headless --chrome --release"
   },
   "devDependencies": {

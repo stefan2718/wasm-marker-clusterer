@@ -52,6 +52,6 @@ lto = true
 name = "clustering"
 harness = false
 
-# [[bench]]
-# name = "serializing"
-# harness = false
+# Unrelease config for wasm-pack
+# [package.metadata.wasm-pack.profile.release]
+# wasm-opt = ['-O4']
