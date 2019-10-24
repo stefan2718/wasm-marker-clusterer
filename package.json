@@ -27,10 +27,17 @@
   "scripts": {
     "build": "tsc && wasm-pack build",
     "prepare": "npm run build && rimraf pkg/{[^w]*,.gitignore} && wasm-opt -O4 pkg/webassembly_marker_clusterer_bg.wasm -o pkg/webassembly_marker_clusterer_bg.wasm",
+    "jest": "jest",
     "test": "cargo test && wasm-pack test --headless --chrome --release"
   },
   "devDependencies": {
+    "@babel/core": "^7.6.4",
+    "@babel/preset-env": "^7.6.3",
+    "@babel/preset-typescript": "^7.6.0",
+    "@types/jest": "^24.0.19",
     "@types/node": "^12.7.12",
+    "babel-jest": "^24.9.0",
+    "jest": "^24.9.0",
     "rimraf": "^2.6.3",
     "typescript": "^3.6.3"
   }
