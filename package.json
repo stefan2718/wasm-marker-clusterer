@@ -25,12 +25,19 @@
     "url": "https://github.com/stefan2718/wasm-marker-clusterer"
   },
   "scripts": {
-    "build": "tsc && wasm-pack build",
-    "prepare": "npm run build && rimraf pkg/{[^w]*,.gitignore} && wasm-opt -O4 pkg/webassembly_marker_clusterer_bg.wasm -o pkg/webassembly_marker_clusterer_bg.wasm",
+    "build": "tsc && wasm-pack build --target web",
+    "wasm-opt": "wasm-opt -O4 pkg/webassembly_marker_clusterer_bg.wasm -o pkg/webassembly_marker_clusterer_bg.wasm",
+    "prepare": "npm run build && rimraf pkg/{[^w]*,.gitignore} && npm run wasm-opt",
+    "start": "http-server -a localhost &",
+    "test:js-lib": "npm run start & ; cypress run && kill %1",
+    "test:unit": "cargo test",
+    "test:wasm": "wasm-pack test --headless --chrome --release",
     "test": "cargo test && wasm-pack test --headless --chrome --release"
   },
   "devDependencies": {
     "@types/node": "^12.7.12",
+    "cypress": "^3.5.0",
+    "http-server": "^0.11.1",
     "rimraf": "^2.6.3",
     "typescript": "^3.6.3"
   }

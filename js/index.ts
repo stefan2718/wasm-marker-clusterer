@@ -31,17 +31,10 @@ const mergeModifiedClusters = (prevClusters: ICluster[], modifiedClusters: IClus
   return prevClusters;
 }
 
-export class WasmMarkerClusterer {
+class MarkerClusterer {
   private config?: IConfig = { onlyReturnModifiedClusters: true };
   private previousZoom = -1;
   private previousClusters: ICluster[] = [];
-
-  /**
-   * @param config {IConfig} Uses default config if none passed.
-   */
-  constructor(config?: IConfig) {
-    this.configure(config);
-  }
   
   /**
    * Merges any passed config parameters into existing config. 
@@ -93,4 +86,17 @@ export class WasmMarkerClusterer {
     this.previousClusters = [];
     clusterer.clearClusters();
   }
+}
+
+export type WasmMarkerClusterer = MarkerClusterer;
+
+/**
+ * Loads and configures the wasm module
+ * @param config {IConfig} Uses default config if none passed.
+ */
+export const CreateWasmMarkerClusterer = async (config?: IConfig): Promise<MarkerClusterer> => {
+  await clusterer.default();
+  let wasm = new MarkerClusterer()
+  wasm.configure(config);
+  return wasm;
 }

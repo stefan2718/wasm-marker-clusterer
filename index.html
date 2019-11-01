@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+  <head></head>
+  <body>
+    <h1>Wasm test page</h1>
+    <script>
+      function createDiv(className, text) {
+        let div = document.createElement("div");
+        div.innerText = text;
+        div.className = className;
+        document.body.appendChild(div);
+      }
+      import("/dist/index.js").then(lib => {
+        createDiv("loaded", "Libary loaded");
+        lib.CreateWasmMarkerClusterer({}).then(clusterer => {
+          clusterer.addMarkers([{lat: 1, lng: 2}]);
+          let clusters = clusterer.clusterMarkersInBounds({north: 3, south: 0, east:3, west: 0}, 8);
+      
+          createDiv("clusters-length", clusters.length);
+          createDiv("cluster-size", clusters[0].size);
+      
+          clusterer.clear();
+          clusters = clusterer.clusterMarkersInBounds({north: 3, south: 0, east:3, west: 0}, 8);
+      
+          createDiv("clusters-length-2", clusters.length);
+        })
+      });
+    </script>
+  </body>
+</html>
