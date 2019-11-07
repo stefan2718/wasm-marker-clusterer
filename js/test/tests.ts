@@ -1,5 +1,3 @@
-import { WasmMarkerClusterer } from "./index";
-
 function createDiv(className: string, text: string | number) {
   let div = document.createElement("div");
   div.innerText = String(text);
@@ -7,7 +5,8 @@ function createDiv(className: string, text: string | number) {
   document.body.appendChild(div);
 }
 
-new WasmMarkerClusterer().init({}).then(clusterer => {
+import(/* webpackChunkName: "wasm" */ "../index").then(lib => {
+  let clusterer = new lib.WasmMarkerClusterer()
   createDiv("loaded", "Libary loaded");
 
   clusterer.addMarkers([{lat: 1, lng: 2}]);

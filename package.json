@@ -12,7 +12,10 @@
     "clustering"
   ],
   "files": [
-    "dist/*"
+    "dist/index*",
+    "dist/interfaces.d.ts",
+    "pkg/webassembly_marker_clusterer.js",
+    "pkg/webassembly_marker_clusterer_bg.wasm"
   ],
   "types": "dist/index.d.ts",
   "main": "dist/index.js",
@@ -21,25 +24,25 @@
     "url": "https://github.com/stefan2718/wasm-marker-clusterer"
   },
   "scripts": {
-    "serve": "webpack-dev-server",
-    "build": "webpack --mode production",
+    "start": "npm run wasm-pack && webpack-dev-server",
+    "start-ci": "npm run wasm-pack && webpack-dev-server --port 8080 & wait-on http://localhost:8080 --timeout 30000",
+    "build": "npm run wasm-pack && tsc",
+    "wasm-pack": "wasm-pack build --release --target bundler",
     "wasm-opt": "wasm-opt -O4 dist/webassembly_marker_clusterer_bg.wasm -o dist/webassembly_marker_clusterer_bg.wasm",
-    "prepare": "npm run build && npm run wasm-opt",
-    "start": "http-server -a localhost",
+    "prepare": "npm run build && rimraf pkg/{[^w]*,.gitignore} && npm run wasm-opt",
     "test:js-lib": "cypress run",
     "test:unit": "cargo test",
     "test:wasm": "wasm-pack test --headless --chrome --release",
-    "test": "npm run test:unit && npm run test:wasm"
+    "test": "npm run test:unit && npm run test:wasm && npm run test:js-lib"
   },
   "devDependencies": {
     "@types/node": "^12.7.12",
-    "@wasm-tool/wasm-pack-plugin": "^1.0.1",
     "copy-webpack-plugin": "^5.0.4",
     "cypress": "^3.5.0",
-    "http-server": "^0.11.1",
     "rimraf": "^2.6.3",
     "ts-loader": "^6.2.1",
     "typescript": "^3.6.3",
+    "wait-on": "^3.3.0",
     "webpack": "^4.41.2",
     "webpack-cli": "^3.3.10",
     "webpack-dev-server": "^3.9.0"

@@ -1,3 +1,4 @@
+import * as clusterer from "../pkg/webassembly_marker_clusterer.js";
 import { IConfig, IMarker, IBounds, ICluster } from "./interfaces";
 export * from "./interfaces";
 
@@ -34,15 +35,14 @@ export class WasmMarkerClusterer {
   private config?: IConfig = { onlyReturnModifiedClusters: true };
   private previousZoom = -1;
   private previousClusters: ICluster[] = [];
-  private clusterer: typeof import("../pkg/webassembly_marker_clusterer");
 
   /**
    * @param config {IConfig} Uses default config if none passed.
    */
-  init = async (config?: IConfig): Promise<WasmMarkerClusterer> => {
-    this.clusterer = await import(/* webpackPreload: true, webpackChunkName: "wasm" */ "../pkg/webassembly_marker_clusterer.js");
-    this.clusterer.configure(config);
-    return this;
+  constructor(config?: IConfig) {
+    if (config) {
+      this.configure(config);
+    }
   }
   
   /**
@@ -55,7 +55,7 @@ export class WasmMarkerClusterer {
       this.clearClusters();
     }
     this.config = Object.assign(this.config, config);
-    this.clusterer.configure(mapConfigNames(this.config));
+    clusterer.configure(mapConfigNames(this.config));
   }
 
   /**
@@ -68,7 +68,7 @@ export class WasmMarkerClusterer {
     this.previousZoom = zoom;
 
     if (this.config.logTime) console.time("into-wasm");
-    let wasmClusters = this.clusterer.clusterMarkersInBounds(bounds, zoom);
+    let wasmClusters = clusterer.clusterMarkersInBounds(bounds, zoom);
     if (this.config.logTime) console.timeEnd("out-of-wasm");
 
     this.previousClusters = !this.config.onlyReturnModifiedClusters || zoomChanged 
@@ -80,19 +80,19 @@ export class WasmMarkerClusterer {
   /**
    * Add an array of lat/lng markers so that they can be clustered.
    */
-  addMarkers = (markers: IMarker[]) => this.clusterer.addMarkers(markers);
+  addMarkers = (markers: IMarker[]) => clusterer.addMarkers(markers);
   /**
    * Clears all added markers and calculated clusters.
    */
   clear = () => {
     this.previousClusters = [];
-    this.clusterer.clear();
+    clusterer.clear();
   }
   /**
    * Clears only calculated clusters.
    */
   clearClusters = () => {
     this.previousClusters = [];
-    this.clusterer.clearClusters();
+    clusterer.clearClusters();
   }
 }

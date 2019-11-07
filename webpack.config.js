@@ -1,21 +1,22 @@
 const path = require('path');
 const CopyPlugin = require("copy-webpack-plugin");
-const WasmPackPlugin = require("@wasm-tool/wasm-pack-plugin");
+
+const testOut = path.resolve(__dirname, 'dist', 'test');
+const testIn = path.resolve(__dirname, 'js', 'test');
 
 module.exports = {
   entry: {
-    index: './js/index.ts',
-    tests: './js/tests.ts',
+    tests: path.join(testIn, 'tests.ts'),
   },
   devtool: 'source-map',
   devServer: {
-    contentBase: path.resolve(__dirname, 'dist'),
+    contentBase: testOut,
     writeToDisk: true,
   },
   output: {
     libraryTarget: 'umd',
     library: 'wasmMarkerClusterer',
-    path: path.resolve(__dirname, 'dist'),
+    path: testOut,
     filename: '[name].js',
     chunkFilename: '[name].js'
   },
@@ -33,13 +34,8 @@ module.exports = {
   },
   plugins: [
     new CopyPlugin([
-      path.resolve(__dirname, "index.html")
+      path.join(testIn, 'index.html')
     ]),
-    new WasmPackPlugin({
-      crateDirectory: path.resolve(__dirname, "."),
-      forceMode: 'production',
-      outName: 'webassembly_marker_clusterer'
-    }),
   ],
   mode: 'development'
 };
