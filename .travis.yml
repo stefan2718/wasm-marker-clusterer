@@ -1,27 +1,21 @@
-matrix:
-  include:
-    - language: rust
-      rust:
-        - stable
-        - beta
-        - nightly
-      jobs:
-        allow_failures:
-          - rust: nightly
-        fast_finish: true
-      cache: cargo
-      before_install:
-        - wasm-pack --version || curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
-      script:
-        - cargo build
-        - cargo test
-        - cargo bench
-        - wasm-pack test --headless --chrome --release
-    - language: node_js
-      node_js: lts/dubnium
-      cache: npm
-      install:
-        - npm ci
-      script:
-        - npm run start-ci
-        - npm run test:js-lib
+language: rust
+rust:
+  - stable
+  - beta
+  - nightly
+jobs:
+  allow_failures:
+    - rust: nightly
+  fast_finish: true
+cache: cargo
+before_install:
+  - wasm-pack --version || curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+  - nvm install lts/dubnium
+install:
+  - cargo build
+  - npm ci
+script:
+  - npm run test:unit
+  - npm run test:wasm
+  - npm run start-ci
+  - npm run test:js-lib

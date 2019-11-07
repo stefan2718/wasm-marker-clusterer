@@ -33,7 +33,7 @@
     "test:js-lib": "cypress run",
     "test:unit": "cargo test",
     "test:wasm": "wasm-pack test --headless --chrome --release",
-    "test": "npm run test:unit && npm run test:wasm && npm run test:js-lib"
+    "test": "npm run test:unit && npm run test:wasm"
   },
   "devDependencies": {
     "@types/node": "^12.7.12",
