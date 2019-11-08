@@ -40,7 +40,9 @@ export class WasmMarkerClusterer {
    * @param config {IConfig} Uses default config if none passed.
    */
   constructor(config?: IConfig) {
-    this.configure(config);
+    if (config) {
+      this.configure(config);
+    }
   }
   
   /**

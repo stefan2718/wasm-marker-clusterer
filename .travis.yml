@@ -10,8 +10,12 @@ jobs:
 cache: cargo
 before_install:
   - wasm-pack --version || curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
-script:
+  - nvm install lts/dubnium
+install:
   - cargo build
-  - cargo test
-  - cargo bench
-  - wasm-pack test --headless --chrome --release
+  - npm ci
+script:
+  - npm run test:unit
+  - npm run test:wasm
+  - npm run start-ci
+  - npm run test:js-lib

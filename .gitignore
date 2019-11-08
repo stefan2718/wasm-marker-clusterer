@@ -20,3 +20,7 @@ node_modules
 /dist
 /pkg
 /wasm-pack.log
+
+# Cypress autogen files that could be modified, but aren't.
+cypress/plugins
+cypress/support
