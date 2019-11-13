@@ -3,7 +3,7 @@
     "outDir": "./dist/",
     "lib": [ "dom", "es2015" ],
     "sourceMap": true,
-    "declaration": true,
+    "declaration": false,
     "strict": true,
     "strictNullChecks": false,
     "noImplicitReturns": true,
@@ -12,7 +12,7 @@
     "moduleResolution": "node",
     "target": "es5",
     "esModuleInterop": true,
-    "allowJs": false
+    "allowJs": true
   },
   "include": [
     "./js/*"
