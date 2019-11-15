@@ -35,15 +35,24 @@ export class WasmMarkerClusterer {
   private config?: IConfig = { onlyReturnModifiedClusters: true };
   private previousZoom = -1;
   private previousClusters: ICluster[] = [];
-  private clusterer = wrap<typeof import("../pkg/webassembly_marker_clusterer.js")>(new Worker("./worker.js", { type: "module" } ));
+  private worker = new Worker("./worker.ts", { type: "module" } );
+  private clusterer = wrap<typeof import("../pkg/webassembly_marker_clusterer.js")>(this.worker);
+  private wasmResolve: (value?: unknown) => void;
+  private wasmReady = new Promise((resolve) => {
+    this.wasmResolve = resolve;
+  })
 
   /**
    * @param config {IConfig} Uses default config if none passed.
    */
-  constructor(config?: IConfig) {
-    if (config) {
-      this.configure(config);
+  constructor() {
+    const onReady = (event: MessageEvent) => {
+      if (event.data && event.data.ready === true) {
+        this.wasmResolve();
+        this.worker.removeEventListener("message", onReady);
+      }
     }
+    this.worker.addEventListener("message", onReady);
   }
 
   /**
@@ -51,7 +60,8 @@ export class WasmMarkerClusterer {
    * 
    * Clears cached clusters if `averageCenter` or `gridSize` is modified.
    */
-  configure = (config: IConfig): Promise<void> => {
+  configure = async (config: IConfig): Promise<void> => {
+    await this.wasmReady;
     if (this.config.averageCenter != config.averageCenter || this.config.gridSize !== config.gridSize) {
       this.clearClusters();
     }
@@ -65,6 +75,7 @@ export class WasmMarkerClusterer {
    * @returns Newly calculated clusters merged with any previously calculated clusters
    */
   clusterMarkersInBounds = async (bounds: IBounds, zoom: number): Promise<ICluster[]> => {
+    await this.wasmReady;
     let zoomChanged = zoom !== this.previousZoom;
     this.previousZoom = zoom;
 
@@ -81,18 +92,23 @@ export class WasmMarkerClusterer {
   /**
    * Add an array of lat/lng markers so that they can be clustered.
    */
-  addMarkers = (markers: IMarker[]): Promise<void> => this.clusterer.addMarkers(markers);
+  addMarkers = async (markers: IMarker[]): Promise<void> => {
+    await this.wasmReady;
+    return this.clusterer.addMarkers(markers);
+  }
   /**
    * Clears all added markers and calculated clusters.
    */
-  clear = () => {
+  clear = async () => {
+    await this.wasmReady;
     this.previousClusters = [];
     return this.clusterer.clear();
   }
   /**
    * Clears only calculated clusters.
    */
-  clearClusters = () => {
+  clearClusters = async () => {
+    await this.wasmReady;
     this.previousClusters = [];
     return this.clusterer.clearClusters();
   }
