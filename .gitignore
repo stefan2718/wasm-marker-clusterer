@@ -24,3 +24,5 @@ node_modules
 # Cypress autogen files that could be modified, but aren't.
 cypress/plugins
 cypress/support
+cypress/fixtures
+cypress/screenshots

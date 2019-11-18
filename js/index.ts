@@ -1,4 +1,4 @@
-import * as clusterer from "../pkg/webassembly_marker_clusterer.js";
+import { wrap } from "comlink";
 import { IConfig, IMarker, IBounds, ICluster } from "./interfaces";
 export * from "./interfaces";
 
@@ -35,27 +35,35 @@ export class WasmMarkerClusterer {
   private config?: IConfig = { onlyReturnModifiedClusters: true };
   private previousZoom = -1;
   private previousClusters: ICluster[] = [];
+  private worker = new Worker("./worker", { type: "module" } );
+  private clusterer = wrap<typeof import("../pkg/webassembly_marker_clusterer.js")>(this.worker);
+  private wasmResolve: (value?: unknown) => void;
+  private wasmReady = new Promise((resolve) => {
+    this.wasmResolve = resolve;
+  })
 
-  /**
-   * @param config {IConfig} Uses default config if none passed.
-   */
-  constructor(config?: IConfig) {
-    if (config) {
-      this.configure(config);
+  constructor() {
+    const onReady = (event: MessageEvent) => {
+      if (event.data && event.data.ready === true) {
+        this.wasmResolve();
+        this.worker.removeEventListener("message", onReady);
+      }
     }
+    this.worker.addEventListener("message", onReady);
   }
-  
+
   /**
    * Merges any passed config parameters into existing config. 
    * 
    * Clears cached clusters if `averageCenter` or `gridSize` is modified.
    */
-  configure = (config: IConfig) => {
+  configure = async (config: IConfig): Promise<void> => {
+    await this.wasmReady;
     if (this.config.averageCenter != config.averageCenter || this.config.gridSize !== config.gridSize) {
       this.clearClusters();
     }
     this.config = Object.assign(this.config, config);
-    clusterer.configure(mapConfigNames(this.config));
+    return this.clusterer.configure(mapConfigNames(this.config));
   }
 
   /**
@@ -63,12 +71,13 @@ export class WasmMarkerClusterer {
    * 
    * @returns Newly calculated clusters merged with any previously calculated clusters
    */
-  clusterMarkersInBounds = (bounds: IBounds, zoom: number): ICluster[] => {
+  clusterMarkersInBounds = async (bounds: IBounds, zoom: number): Promise<ICluster[]> => {
+    await this.wasmReady;
     let zoomChanged = zoom !== this.previousZoom;
     this.previousZoom = zoom;
 
     if (this.config.logTime) console.time("into-wasm");
-    let wasmClusters = clusterer.clusterMarkersInBounds(bounds, zoom);
+    let wasmClusters = await this.clusterer.clusterMarkersInBounds(bounds, zoom);
     if (this.config.logTime) console.timeEnd("out-of-wasm");
 
     this.previousClusters = !this.config.onlyReturnModifiedClusters || zoomChanged 
@@ -80,19 +89,24 @@ export class WasmMarkerClusterer {
   /**
    * Add an array of lat/lng markers so that they can be clustered.
    */
-  addMarkers = (markers: IMarker[]) => clusterer.addMarkers(markers);
+  addMarkers = async (markers: IMarker[]): Promise<void> => {
+    await this.wasmReady;
+    return this.clusterer.addMarkers(markers);
+  }
   /**
    * Clears all added markers and calculated clusters.
    */
-  clear = () => {
+  clear = async () => {
+    await this.wasmReady;
     this.previousClusters = [];
-    clusterer.clear();
+    return this.clusterer.clear();
   }
   /**
    * Clears only calculated clusters.
    */
-  clearClusters = () => {
+  clearClusters = async () => {
+    await this.wasmReady;
     this.previousClusters = [];
-    clusterer.clearClusters();
+    return this.clusterer.clearClusters();
   }
 }

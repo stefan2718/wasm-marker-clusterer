@@ -1,5 +1,6 @@
 const path = require('path');
 const CopyPlugin = require("copy-webpack-plugin");
+const WorkerPlugin = require('worker-plugin');
 
 const testOut = path.resolve(__dirname, 'dist', 'test');
 const testIn = path.resolve(__dirname, 'js', 'test');
@@ -36,6 +37,7 @@ module.exports = {
     new CopyPlugin([
       path.join(testIn, 'index.html')
     ]),
+    new WorkerPlugin(),
   ],
   mode: 'development'
 };
