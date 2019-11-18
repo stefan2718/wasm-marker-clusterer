@@ -14,6 +14,7 @@
   "files": [
     "dist/index*",
     "dist/interfaces.d.ts",
+    "dist/worker*",
     "pkg/webassembly_marker_clusterer.js",
     "pkg/webassembly_marker_clusterer_bg.wasm"
   ],
@@ -31,7 +32,7 @@
     "wasm-opt": "wasm-opt -O4 dist/webassembly_marker_clusterer_bg.wasm -o dist/webassembly_marker_clusterer_bg.wasm",
     "prepare": "npm run build",
     "prepublishOnly": "rimraf pkg/{[^w]*,.gitignore} && npm run wasm-opt",
-    "test:js-lib": "cypress open",
+    "test:js-lib": "cypress run",
     "test:unit": "cargo test",
     "test:wasm": "wasm-pack test --headless --chrome --release",
     "test": "npm run test:unit && npm run test:wasm"

@@ -35,16 +35,13 @@ export class WasmMarkerClusterer {
   private config?: IConfig = { onlyReturnModifiedClusters: true };
   private previousZoom = -1;
   private previousClusters: ICluster[] = [];
-  private worker = new Worker("./worker.ts", { type: "module" } );
+  private worker = new Worker("./worker", { type: "module" } );
   private clusterer = wrap<typeof import("../pkg/webassembly_marker_clusterer.js")>(this.worker);
   private wasmResolve: (value?: unknown) => void;
   private wasmReady = new Promise((resolve) => {
     this.wasmResolve = resolve;
   })
 
-  /**
-   * @param config {IConfig} Uses default config if none passed.
-   */
   constructor() {
     const onReady = (event: MessageEvent) => {
       if (event.data && event.data.ready === true) {
