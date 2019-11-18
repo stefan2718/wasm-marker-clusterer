@@ -12,6 +12,7 @@ function createDiv(className: string, text: string | number) {
   await clusterer.configure({});
 
   await clusterer.addMarkers([{lat: 1, lng: 2}]);
+  createDiv("added", "Added clusters");
   let clusters = await clusterer.clusterMarkersInBounds({north: 3, south: 0, east:3, west: 0}, 8);
 
   createDiv("clusters-length", clusters.length);

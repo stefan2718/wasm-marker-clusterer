@@ -25,3 +25,4 @@ node_modules
 cypress/plugins
 cypress/support
 cypress/fixtures
+cypress/screenshots
