@@ -29,7 +29,7 @@
     "start-ci": "npm run wasm-pack && webpack-dev-server --port 8080 & wait-on http://localhost:8080 --timeout 30000",
     "build": "npm run wasm-pack && tsc",
     "wasm-pack": "wasm-pack build --release --target bundler",
-    "wasm-opt": "wasm-opt -O4 dist/webassembly_marker_clusterer_bg.wasm -o dist/webassembly_marker_clusterer_bg.wasm",
+    "wasm-opt": "wasm-opt -O4 pkg/webassembly_marker_clusterer_bg.wasm -o pkg/webassembly_marker_clusterer_bg.wasm",
     "prepare": "npm run build",
     "prepublishOnly": "rimraf pkg/{[^w]*,.gitignore} && npm run wasm-opt",
     "test:js-lib": "cypress run",
