@@ -14,6 +14,7 @@ before_install:
 install:
   - cargo build
   - npm ci
+  - npm install --no-save worker-plugin@3.2
 script:
   - npm run test:unit
   - npm run test:wasm
