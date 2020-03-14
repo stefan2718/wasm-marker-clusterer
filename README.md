@@ -9,7 +9,7 @@
 [See the demo here to create a graph of your own speed-up results.](https://stefanbattiston.com/lab/webassembly-marker-clusterer)
 
 ![Graph showing 8x speedup for wasm-marker-clusterer compared to javascript MarkerClustererPlus](./wasm-vs-mcp-graph.png)
-[Why "(per cluster)" on the axises?](#Why-"(per-cluster)"-on-the-graph-axes?)
+[Why "(per cluster)" on the axises?](#why-per-cluster-on-the-graph-axes)
 
 ## Comparison
 
@@ -25,10 +25,25 @@ Here's a quick summary of the differences:
 | Handle lots of markers seamlessly? | Starts to noticeably slow down after about 1000 markers | Easily clusters 10,000 markers or more
 
 ## Installation
-This package has a peer-dependency on [GoogleChromeLabs/worker-plugin](https://github.com/GoogleChromeLabs/worker-plugin) which is used to load the WASM module in a web worker. 
+This package has a peer-dependency on the **Webpack** plugin [GoogleChromeLabs/worker-plugin](https://github.com/GoogleChromeLabs/worker-plugin) which is used to load the WASM module in a web worker.
 
 ```shell
-npm install wasm-marker-clusterer worker-plugin
+npm install wasm-marker-clusterer
+npm install -D worker-plugin
+```
+
+Then add worker-plugin to your **webpack.config.js:**
+
+```diff
++ const WorkerPlugin = require('worker-plugin');
+
+module.exports = {
+  <...>
+  plugins: [
++    new WorkerPlugin()
+  ]
+  <...>
+}
 ```
 
 ## Usage
