@@ -46,6 +46,8 @@ module.exports = {
 }
 ```
 
+If you're not using Webpack, it should be possible to still use this library without `worker-plugin`, but you'll have to manually ensure the worker can be found and loaded. If you figure this out, let me know!
+
 ## Usage
 
 ```javascript

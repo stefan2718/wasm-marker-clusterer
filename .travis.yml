@@ -15,7 +15,6 @@ install:
   - npm ci
   - npm install --no-save worker-plugin@3.2
 script:
-  - npm run test:unit
   - npm run test:wasm
   - npm run start-ci
   - npm run test:js-lib

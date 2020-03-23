@@ -31,6 +31,7 @@
     "wasm-pack": "wasm-pack build --release --target bundler",
     "prepare": "npm run build",
     "prepublishOnly": "rimraf pkg/{[^w]*,.gitignore}",
+    "cypress": "cypress",
     "test:js-lib": "cypress run",
     "test:unit": "cargo test",
     "test:wasm": "wasm-pack --verbose test --headless --firefox --release",

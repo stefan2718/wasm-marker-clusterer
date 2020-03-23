@@ -7,8 +7,13 @@ extern crate easybench_wasm;
 
 use wasm_bindgen_test::*;
 use wasm_bindgen::prelude::JsValue;
-use utilities::{ get_sample_markers, get_unique_sample_markers };
-use webassembly_marker_clusterer::structs::marker::Marker;
+use utilities::{ get_sample_markers, get_unique_sample_markers, DEFAULT_BOUNDS };
+use webassembly_marker_clusterer::{
+  add_markers,
+  cluster_markers_in_bounds,
+  clear_clusters,
+  structs::marker::Marker
+};
 use web_sys::console;
 
 // This runs a unit test in the browser, so it can use browser APIs.
@@ -39,4 +44,25 @@ fn serialize_deserialize() {
 
   console::log_1(&format!("deserialize/default-serde:      {}", deserialize_default_serde).into());
   console::log_1(&format!("deserialize/serde-wasm-bindgen: {}", deserialize_serde_wasm_bindgen).into());
+}
+
+#[wasm_bindgen_test]
+fn cluster() {
+  let sample_markers = get_sample_markers();
+  let js = JsValue::from_serde(&sample_markers).unwrap();
+  let run_time = 6.0;
+
+  add_markers(js);
+
+  console::log_1(&"zm,    nanos,    R², itrs, smpl".into());
+  for zoom in 7..12 {
+    let res = easybench_wasm::bench_limit(run_time,
+      || {
+        let bounds = JsValue::from_serde(&DEFAULT_BOUNDS).unwrap();
+        cluster_markers_in_bounds(bounds, zoom);
+        clear_clusters();
+      });
+
+    console::log_1(&format!("{:2}, {:8.0}, {:.3}, {:4}, {:4}", zoom, res.ns_per_iter, res.goodness_of_fit, res.iterations, res.samples).into());
+  }
 }
