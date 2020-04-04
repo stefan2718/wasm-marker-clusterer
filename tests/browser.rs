@@ -29,8 +29,8 @@ fn serialize_deserialize() {
   let serialize_serde_wasm_bindgen = easybench_wasm::bench_limit(run_time,
     || serde_wasm_bindgen::to_value(&unique_sample_markers).unwrap());
 
-  console::log_1(&format!("serialize/default-serde:      {}", serialize_default_serde).into());
-  console::log_1(&format!("serialize/serde-wasm-bindgen: {}", serialize_serde_wasm_bindgen).into());
+  console::log_1(&format!("serialize/default-serde:        {}", serialize_default_serde).into());
+  console::log_1(&format!("serialize/serde-wasm-bindgen:   {}", serialize_serde_wasm_bindgen).into());
 
   let sample_markers = get_sample_markers();
 

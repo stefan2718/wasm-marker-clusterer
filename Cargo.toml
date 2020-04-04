@@ -13,13 +13,13 @@ crate-type = ["cdylib", "rlib"]
 # default = ["wee_alloc"]
 
 [dependencies]
-wasm-bindgen = { version = "0.2.51", features = ["serde-serialize"] }
-serde = "1.0.101"
-serde_derive = "1.0.101"
+wasm-bindgen = { version = "0.2.60", features = ["serde-serialize"] }
+serde = "1.0.106"
+serde_derive = "1.0.106"
 serde-wasm-bindgen = "0.1.3"
-web-sys = { version = "0.3", features = [ "console" ] }
+web-sys = { version = "0.3.37", features = [ "console" ] }
 googleprojection = "1.2.0"
-uuid = { version = "0.7", features = ["serde", "v4", "wasm-bindgen"] }
+uuid = { version = "0.8.1", features = ["serde", "v4", "wasm-bindgen"] }
 lazy_static = "1.4.0"
 optional_struct = "0.2.0"
 
@@ -31,7 +31,7 @@ optional_struct = "0.2.0"
 console_error_panic_hook = "0.1.6"
 
 [dev-dependencies]
-wasm-bindgen-test = "0.2.50"
+wasm-bindgen-test = "0.3.10"
 criterion = "0.3"
 utilities = { path = "utilities" }
 easybench-wasm = "0.2.1"
