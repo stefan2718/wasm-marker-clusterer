@@ -76,9 +76,9 @@ export class WasmMarkerClusterer {
     let zoomChanged = zoom !== this.previousZoom;
     this.previousZoom = zoom;
 
-    if (this.config.logTime) console.time("into-wasm");
+    if (this.config.logTime) console.time("wasm");
     let wasmClusters = await this.clusterer.clusterMarkersInBounds(bounds, zoom);
-    if (this.config.logTime) console.timeEnd("out-of-wasm");
+    if (this.config.logTime) console.timeEnd("wasm");
 
     this.previousClusters = !this.config.onlyReturnModifiedClusters || zoomChanged 
         ? wasmClusters 

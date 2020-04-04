@@ -61,7 +61,6 @@ pub fn cluster_markers_in_bounds(bounds_val: JsValue, zoom: usize) -> JsValue {
 
     let map_bounds: Bounds = calculate_extended_bounds(&serde_wasm_bindgen::from_value(bounds_val).unwrap(), zoom, config.grid_size);
     if config.log_time {
-        console::time_end_with_label("into-wasm");
         console::time_with_label("clustering");
     }
     let clusters = &mut CLUSTERS.lock().unwrap();
@@ -72,7 +71,6 @@ pub fn cluster_markers_in_bounds(bounds_val: JsValue, zoom: usize) -> JsValue {
     let uuids_modified = cluster_markers(clusters, &mut ALL_POINTS.lock().unwrap(), &map_bounds, zoom, &config);
     if config.log_time {
         console::time_end_with_label("clustering");
-        console::time_with_label("out-of-wasm");
     }
 
     let vec = if !config.only_return_modified_clusters {
