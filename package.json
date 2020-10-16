@@ -2,7 +2,7 @@
   "name": "wasm-marker-clusterer",
   "author": "Stefan Battiston <stefan.battiston@gmail.com>",
   "description": "A WebAssembly alternative to the popular MarkerClustererPlus library for Google Maps",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "license": "LGPL-3.0-only",
   "keywords": [
     "wasm",
