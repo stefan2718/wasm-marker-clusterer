@@ -14,9 +14,6 @@ pub struct Cluster {
 
 impl Cluster {
     pub fn add_marker(&mut self, new_point: &UniqueMarker, zoom: usize, average_center: bool, grid_size: f64) {
-        if self.markers.contains(new_point) {
-            return;
-        }
         self.size += 1;
         self.markers.push(new_point.clone());
         if average_center {

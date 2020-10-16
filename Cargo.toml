@@ -52,6 +52,6 @@ lto = true
 name = "clustering"
 harness = false
 
-# config for wasm-pack
+# config for wasm-pack -- https://rustwasm.github.io/docs/wasm-pack/cargo-toml-configuration.html
 [package.metadata.wasm-pack.profile.release]
 wasm-opt = ['-O4']

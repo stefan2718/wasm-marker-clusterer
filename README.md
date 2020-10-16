@@ -2,9 +2,9 @@
 
 [![Build Status](https://travis-ci.org/stefan2718/wasm-marker-clusterer.svg?branch=master)](https://travis-ci.org/stefan2718/wasm-marker-clusterer)
 
-`wasm-marker-clusterer` is a much faster alternative to the popular [MarkerClustererPlus](https://github.com/googlemaps/v3-utility-library/tree/master/markerclustererplus) (MCP) library for [Google Maps](https://developers.google.com/maps/documentation/javascript/marker-clustering). It is compiled from Rust into [WebAssembly](https://developer.mozilla.org/en-US/docs/WebAssembly). This library is used to cluster geographic markers (lat/lng pairs) into labelled clusters of markers, to simplify a map view.
+`wasm-marker-clusterer` is a faster (and more bare-bones) alternative to the popular [MarkerClustererPlus](https://github.com/googlemaps/v3-utility-library/tree/master/markerclustererplus) (MCP) library for [Google Maps](https://developers.google.com/maps/documentation/javascript/marker-clustering). It is compiled from Rust into [WebAssembly](https://developer.mozilla.org/en-US/docs/WebAssembly). This library is used to cluster geographic markers (lat/lng pairs) into labelled clusters of markers, to simplify a map view.
 
-**5x-15x times faster than the Javascript implementation.**
+**10-50% faster than the Javascript implementation.**
 
 [See the demo here to create a graph of your own speed-up results.](https://stefanbattiston.com/lab/webassembly-marker-clusterer)
 
@@ -22,7 +22,6 @@ Here's a quick summary of the differences:
 | Work with any map system? | No, only Google Maps | Yes, any map system |
 | Use a restrictive marker renderer? | Yup, you have to overwrite the library's prototypes if really want to customize your markers. | No, is not tied to any renderer. You can define interactive and beautiful markers|
 | Run in the main thread, blocking rendering? | Yup, and it'll slow down your whole app if you have lots of markers. | No, runs in a Web Worker so your app remains responsive while it calculates.
-| Handle lots of markers seamlessly? | Starts to noticeably slow down after about 1000 markers | Easily clusters 10,000 markers or more
 
 ## Installation
 This package has a peer-dependency on the **Webpack** plugin [GoogleChromeLabs/worker-plugin](https://github.com/GoogleChromeLabs/worker-plugin) which is used to load the WASM module in a web worker.
